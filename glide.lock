@@ -1,5 +1,5 @@
 hash: 0b783641746479b9ec259d3d691ec2b1f606ca9eeeb64e9e7e0b4e213b766f6a
-updated: 2016-02-10T11:42:49.361045651Z
+updated: 2016-02-10T14:10:04.229533943Z
 imports:
 - name: github.com/cyberdelia/go-metrics-graphite
   version: 7e54b5c2aa6eaff4286c44129c3def899dff528c

@@ -3,6 +3,7 @@ package service
 import (
 	"net/http"
 
+	"github.com/NYTimes/gizmo/server"
 	"github.com/Sirupsen/logrus"
 
 	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
@@ -38,23 +39,28 @@ func (s *RiakService) Middleware(h http.Handler) http.Handler {
 	return h
 }
 
-// Endpoints maps the routes with the endpoints
-func (s *RiakService) Endpoints() map[string]map[string]http.HandlerFunc {
+// JSONMiddleware wraps all the requests around this middlewares
+func (s *RiakService) JSONMiddleware(j server.JSONEndpoint) server.JSONEndpoint {
+	return j
+}
+
+// JSONEndpoints maps the routes with the endpoints
+func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint {
 	logrus.Debug("Registering endpoints...")
 
-	return map[string]map[string]http.HandlerFunc{
+	return map[string]map[string]server.JSONEndpoint{
 
-		"/plans": map[string]http.HandlerFunc{
+		"/plans": map[string]server.JSONEndpoint{
 			// Returs the available plans
 			"GET": s.GetPlans,
 		},
 
-		"/": map[string]http.HandlerFunc{
+		"/": map[string]server.JSONEndpoint{
 			// Creates a service instance
 			"POST": s.CreateInstance,
 		},
 
-		"/{name}/bind-app": map[string]http.HandlerFunc{
+		"/{name}/bind-app": map[string]server.JSONEndpoint{
 			// Binds an instance with an application
 			"POST": s.BindInstance,
 			// Unbinds an instance from an application
@@ -62,7 +68,7 @@ func (s *RiakService) Endpoints() map[string]map[string]http.HandlerFunc {
 		},
 
 		// (Un)?Bind events to make custom stuff
-		"/{name}/bind": map[string]http.HandlerFunc{
+		"/{name}/bind": map[string]server.JSONEndpoint{
 			// Bind app to instance event
 			"PUT": s.BindInstanceEvent,
 
@@ -70,12 +76,12 @@ func (s *RiakService) Endpoints() map[string]map[string]http.HandlerFunc {
 			"DELETE": s.UnbindInstanceEvent,
 		},
 
-		"/{name}": map[string]http.HandlerFunc{
+		"/{name}": map[string]server.JSONEndpoint{
 			// Removes the instance
 			"DELETE": s.RemoveInstance,
 		},
 
-		"/{name}/status": map[string]http.HandlerFunc{
+		"/{name}/status": map[string]server.JSONEndpoint{
 			// Checks the status of the instance
 			"GET": s.CheckInstanceStatus,
 		},
