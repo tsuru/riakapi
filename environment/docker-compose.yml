@@ -1,0 +1,8 @@
+app:
+  build: ../
+  dockerfile: Dockerfile
+
+  volumes:
+    - ./../:/go/src/gitlab.qdqmedia.com/shared-projects/riakapi
+
+  command: "/bin/true"

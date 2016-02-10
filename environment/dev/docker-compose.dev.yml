@@ -1,0 +1,6 @@
+app:
+  container_name: riakapi-dev
+  ports:
+    - "8888:8888"
+
+  hostname: riakapi-dev
