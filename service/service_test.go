@@ -1,11 +1,9 @@
 package service
 
 import (
-	"io"
-	"io/ioutil"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	gizmoConfig "github.com/NYTimes/gizmo/config"
@@ -16,7 +14,7 @@ import (
 )
 
 var dummyConfig = &config.ServiceConfig{Riak: &config.Riak{}, Server: &gizmoConfig.Server{}}
-var dummyClient = client.NewNilClient()
+var dummyClient = client.NewDummy()
 
 //func setUp() {
 //
@@ -27,13 +25,21 @@ var dummyClient = client.NewNilClient()
 //	os.Exit(m.Run())
 //}
 
-func TestGetPlansOK(t *testing.T) {
+func TestGetPlans(t *testing.T) {
+
+	correctPlans := []interface{}{
+		map[string]interface{}{"name": client.RiakDataTypeFlag, "description": "Bucket type of flag data type"},
+		map[string]interface{}{"name": client.RiakDataTypeRegister, "description": "Bucket type of register data type"},
+		map[string]interface{}{"name": client.RiakDataTypeCounter, "description": "Bucket type of counter data type"},
+		map[string]interface{}{"name": client.RiakDataTypeSet, "description": "Bucket type of set data type"},
+		map[string]interface{}{"name": client.RiakDataTypeMap, "description": "Bucket type of map data type"},
+	}
+
 	tests := []struct {
 		givenURI    string
 		givenClient client.Client
 		givenConfig *config.ServiceConfig
 		givenMethod string
-		givenBody   io.Reader
 
 		wantCode int
 		wantBody interface{}
@@ -43,20 +49,19 @@ func TestGetPlansOK(t *testing.T) {
 			givenClient: dummyClient,
 			givenConfig: dummyConfig,
 			givenMethod: "GET",
-			givenBody:   strings.NewReader(""),
 
 			wantCode: http.StatusOK,
-			wantBody: "OK",
+			wantBody: correctPlans,
 		},
 	}
 
 	for _, test := range tests {
 		// Create our dummy server (with config & client)
-		srvr := server.NewSimpleServer(test.givenConfig.Server)
+		srvr := server.NewSimpleServer(nil)
 		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
 
 		// Create the request
-		r, _ := http.NewRequest(test.givenMethod, test.givenURI, test.givenBody)
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
 		w := httptest.NewRecorder()
 		srvr.ServeHTTP(w, r)
 
@@ -64,9 +69,14 @@ func TestGetPlansOK(t *testing.T) {
 			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
 		}
 
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil || string(b) != test.wantBody {
-			t.Errorf("expected response code of %s; got %s", test.wantBody, string(b))
+		var got interface{}
+		err := json.NewDecoder(w.Body).Decode(&got)
+		if err != nil {
+			t.Error("unable to JSON decode response body: ", err)
+		}
+
+		if len(got.([]interface{})) != len(test.wantBody.([]interface{})) {
+			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
 		}
 
 	}

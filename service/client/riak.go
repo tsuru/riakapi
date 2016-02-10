@@ -22,3 +22,16 @@ type Riak struct {
 	host string
 	port int
 }
+
+// GetDataTypes Gets Riak plans
+func (c *Riak) GetDataTypes() ([]map[string]string, error) {
+	var r []map[string]string
+
+	for k, v := range dataTypes {
+		r = append(r, map[string]string{
+			"name":        k,
+			"description": v,
+		})
+	}
+	return r, nil
+}

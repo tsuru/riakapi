@@ -17,7 +17,7 @@ func (s *RiakService) GetPlans(r *http.Request) (int, interface{}, error) {
 		return http.StatusInternalServerError, map[string]error{"error": err}, err
 	}
 
-	return http.StatusOK, plans, nil
+	return http.StatusOK, &plans, nil
 }
 
 // CreateInstance Creates a new instance on Tsuru, this translates to a new
