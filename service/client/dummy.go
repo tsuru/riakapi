@@ -42,22 +42,35 @@ func (c *Dummy) Flush() {
 	users = make(map[string]userProps)
 }
 
-func (c *Dummy) CreateBucketType(bucketName, dataType string) error {
+func (c *Dummy) GetBucketTypes() ([]map[string]string, error) {
+	var r []map[string]string
+
+	for k, v := range bucketTypes {
+		r = append(r, map[string]string{
+			"name":        k,
+			"description": v,
+		})
+	}
+	return r, nil
+
+}
+
+func (c *Dummy) CreateBucket(bucketName, bucketType string) error {
 	// Check bucket type
-	if _, ok := dataTypes[dataType]; !ok {
-		return errors.New("Not valid bucket data type")
+	if _, ok := bucketTypes[bucketType]; !ok {
+		return errors.New("Not valid bucket type")
 	}
 
 	bucketsMutex.Lock()
 	defer bucketsMutex.Unlock()
 	if _, ok := buckets[bucketName]; !ok {
-		buckets[bucketName] = dataType
-		logrus.Infof("Bucket '%s' of type '%s' created", bucketName, dataType)
+		buckets[bucketName] = bucketType
+		logrus.Infof("Bucket '%s' of type '%s' created", bucketName, bucketType)
 		return nil
 	}
-	return errors.New("Bucket type already declared")
+	return errors.New("Bucket already declared")
 }
-func (c *Dummy) DeleteBucketType(bucketName, bucketType string) error {
+func (c *Dummy) DeleteBucket(bucketName, bucketType string) error {
 	bucketsMutex.Lock()
 	defer bucketsMutex.Unlock()
 	if _, ok := buckets[bucketName]; ok {

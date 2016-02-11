@@ -9,10 +9,7 @@ import (
 )
 
 var (
-	envVars = map[string]string{
-		"RIAK_HOST": "",
-		"RIAK_PORT": "",
-	}
+	envVars                      = map[string]string{}
 	serviceIntegrationTestConfig *config.ServiceConfig
 	serviceIntegrationTestClient client.Client
 )
@@ -25,7 +22,7 @@ func setUp() {
 	}
 
 	serviceIntegrationTestConfig = config.NewServiceConfig()
-	serviceIntegrationTestClient = client.NewRiak(serviceIntegrationTestConfig.RiakHost, serviceIntegrationTestConfig.RiakPort)
+	//serviceIntegrationTestClient = client.NewRiak(serviceIntegrationTestConfig.RiakHost, serviceIntegrationTestConfig.RiakPort)
 }
 
 func TestMain(m *testing.M) {

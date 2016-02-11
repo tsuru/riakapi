@@ -12,11 +12,11 @@ const (
 )
 
 // GetPlans returns a json with the available plans on tsuru. Translated to riak,
-// this are the data types
+// this are the bucket types
 func (s *RiakService) GetPlans(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'GetPlans' endpoint")
 
-	plans, err := s.Client.GetDataTypes()
+	plans, err := s.Client.GetBucketTypes()
 
 	if err != nil {
 		return http.StatusInternalServerError, map[string]error{"error": err}, err
@@ -31,14 +31,14 @@ func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) 
 	logrus.Debug("Executing 'CreateInstance' endpoint")
 
 	bucketName := r.URL.Query().Get("name")
-	dataType := r.URL.Query().Get("plan")
+	bucketType := r.URL.Query().Get("plan")
 
-	if bucketName == "" || dataType == "" {
+	if bucketName == "" || bucketType == "" {
 		logrus.Errorf("Could not create the instance: %s", MissingParamsMsg)
 		return http.StatusInternalServerError, MissingParamsMsg, nil
 	}
 
-	err := s.Client.CreateBucketType(bucketName, dataType)
+	err := s.Client.CreateBucket(bucketName, bucketType)
 
 	if err != nil {
 		logrus.Errorf("Could not create the instance: %s", err)

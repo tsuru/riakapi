@@ -28,11 +28,9 @@ var serviceTestClient = client.NewDummy()
 func TestGetPlans(t *testing.T) {
 
 	correctPlans := []interface{}{
-		map[string]interface{}{"name": client.RiakDataTypeFlag, "description": "Bucket type of flag data type"},
-		map[string]interface{}{"name": client.RiakDataTypeRegister, "description": "Bucket type of register data type"},
-		map[string]interface{}{"name": client.RiakDataTypeCounter, "description": "Bucket type of counter data type"},
-		map[string]interface{}{"name": client.RiakDataTypeSet, "description": "Bucket type of set data type"},
-		map[string]interface{}{"name": client.RiakDataTypeMap, "description": "Bucket type of map data type"},
+		map[string]interface{}{"name": client.BucketTypeCounter, "description": "Bucket type of counter data type"},
+		map[string]interface{}{"name": client.BucketTypeSet, "description": "Bucket type of set data type"},
+		map[string]interface{}{"name": client.BucketTypeMap, "description": "Bucket type of map data type"},
 	}
 
 	tests := []struct {
@@ -112,7 +110,7 @@ func TestInstanceCreation(t *testing.T) {
 			wantBody: BucketCreationFailMsg,
 		},
 		{
-			givenURI:    "/resources?name=test-bucket&plan=flag&team=myteam&user=username",
+			givenURI:    "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
 			givenClient: serviceTestClient,
 			givenConfig: serviceTestCfg,
 			givenMethod: "POST",
@@ -121,7 +119,7 @@ func TestInstanceCreation(t *testing.T) {
 			wantBody: "",
 		},
 		{ // Same test as previous one, will conflict the name
-			givenURI:    "/resources?name=test-bucket&plan=flag&team=myteam&user=username",
+			givenURI:    "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
 			givenClient: serviceTestClient,
 			givenConfig: serviceTestCfg,
 			givenMethod: "POST",
