@@ -75,6 +75,7 @@ func TestGetPlans(t *testing.T) {
 			t.Error("unable to JSON decode response body: ", err)
 		}
 
+		// Check len because api returns different order of the slice each time
 		if len(got.([]interface{})) != len(test.wantBody.([]interface{})) {
 			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
 		}
