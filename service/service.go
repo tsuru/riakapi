@@ -31,7 +31,9 @@ func NewRiakService(c *config.ServiceConfig, client client.Client) *RiakService 
 
 // Prefix returns the url prefix for all the endpoints of this service
 func (s *RiakService) Prefix() string {
-	return "/resources"
+	// Could return '/resources' but tsuru doesn't send a trailing slash at the end
+	// and with prefix empty route mapping doesn't work
+	return "/"
 }
 
 // Middleware wraps all the requests around this middlewares
@@ -50,17 +52,17 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 
 	return map[string]map[string]server.JSONEndpoint{
 
-		"/plans": map[string]server.JSONEndpoint{
+		"/resources/plans": map[string]server.JSONEndpoint{
 			// Returs the available plans
 			"GET": s.GetPlans,
 		},
 
-		"/": map[string]server.JSONEndpoint{
+		"/resources": map[string]server.JSONEndpoint{
 			// Creates a service instance
 			"POST": s.CreateInstance,
 		},
 
-		"/{name}/bind-app": map[string]server.JSONEndpoint{
+		"/resources/{name}/bind-app": map[string]server.JSONEndpoint{
 			// Binds an instance with an application
 			"POST": s.BindInstance,
 			// Unbinds an instance from an application
@@ -68,7 +70,7 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 		},
 
 		// (Un)?Bind events to make custom stuff
-		"/{name}/bind": map[string]server.JSONEndpoint{
+		"/resources/{name}/bind": map[string]server.JSONEndpoint{
 			// Bind app to instance event
 			"PUT": s.BindInstanceEvent,
 
@@ -76,12 +78,12 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 			"DELETE": s.UnbindInstanceEvent,
 		},
 
-		"/{name}": map[string]server.JSONEndpoint{
+		"/resources/{name}": map[string]server.JSONEndpoint{
 			// Removes the instance
 			"DELETE": s.RemoveInstance,
 		},
 
-		"/{name}/status": map[string]server.JSONEndpoint{
+		"/resources/{name}/status": map[string]server.JSONEndpoint{
 			// Checks the status of the instance
 			"GET": s.CheckInstanceStatus,
 		},

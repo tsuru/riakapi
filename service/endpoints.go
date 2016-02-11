@@ -6,6 +6,11 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+const (
+	MissingParamsMsg      = "Missing parameters"
+	BucketCreationFailMsg = "Error declaring bucket type"
+)
+
 // GetPlans returns a json with the available plans on tsuru. Translated to riak,
 // this are the data types
 func (s *RiakService) GetPlans(r *http.Request) (int, interface{}, error) {
@@ -24,7 +29,23 @@ func (s *RiakService) GetPlans(r *http.Request) (int, interface{}, error) {
 // bucket of the desired bucket type on Riak
 func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'CreateInstance' endpoint")
-	return http.StatusNotImplemented, nil, nil
+
+	bucketName := r.URL.Query().Get("name")
+	dataType := r.URL.Query().Get("plan")
+
+	if bucketName == "" || dataType == "" {
+		logrus.Errorf("Could not create the instance: %s", MissingParamsMsg)
+		return http.StatusInternalServerError, MissingParamsMsg, nil
+	}
+
+	err := s.Client.CreateBucketType(bucketName, dataType)
+
+	if err != nil {
+		logrus.Errorf("Could not create the instance: %s", err)
+		return http.StatusInternalServerError, BucketCreationFailMsg, nil
+	}
+
+	return http.StatusOK, "", nil
 }
 
 //BindInstance Binds an app to an instance on Tsuru, this translates to a new

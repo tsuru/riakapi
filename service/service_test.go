@@ -13,8 +13,8 @@ import (
 	"gitlab.qdqmedia.com/shared-projects/riakapi/service/client"
 )
 
-var dummyConfig = &config.ServiceConfig{Riak: &config.Riak{}, Server: &gizmoConfig.Server{}}
-var dummyClient = client.NewDummy()
+var serviceTestCfg = &config.ServiceConfig{Riak: &config.Riak{}, Server: &gizmoConfig.Server{}}
+var serviceTestClient = client.NewDummy()
 
 //func setUp() {
 //
@@ -46,8 +46,8 @@ func TestGetPlans(t *testing.T) {
 	}{
 		{
 			givenURI:    "/resources/plans",
-			givenClient: dummyClient,
-			givenConfig: dummyConfig,
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
 			givenMethod: "GET",
 
 			wantCode: http.StatusOK,
@@ -81,4 +81,81 @@ func TestGetPlans(t *testing.T) {
 		}
 
 	}
+}
+
+func TestInstanceCreation(t *testing.T) {
+	tests := []struct {
+		givenURI    string
+		givenClient client.Client
+		givenConfig *config.ServiceConfig
+		givenMethod string
+
+		wantCode int
+		wantBody interface{}
+	}{
+		{
+			givenURI:    "/resources",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusInternalServerError,
+			wantBody: MissingParamsMsg,
+		},
+		{
+			givenURI:    "/resources?name=test-bucket&plan=wrong&team=myteam&user=username",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusInternalServerError,
+			wantBody: BucketCreationFailMsg,
+		},
+		{
+			givenURI:    "/resources?name=test-bucket&plan=flag&team=myteam&user=username",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusOK,
+			wantBody: "",
+		},
+		{ // Same test as previous one, will conflict the name
+			givenURI:    "/resources?name=test-bucket&plan=flag&team=myteam&user=username",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusInternalServerError,
+			wantBody: BucketCreationFailMsg,
+		},
+	}
+
+	for _, test := range tests {
+		// Create our dummy server (with config & client)
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got interface{}
+		err := json.NewDecoder(w.Body).Decode(&got)
+		if err != nil {
+			t.Error("unable to JSON decode response body: ", err)
+		}
+
+		// Check len because api returns different order of the slice each time
+		if got != test.wantBody {
+			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
+		}
+
+	}
+
 }

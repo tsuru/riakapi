@@ -1,5 +1,7 @@
 package client
 
+import "errors"
+
 const (
 	RiakDataTypeFlag     = "flag"
 	RiakDataTypeRegister = "register"
@@ -23,6 +25,14 @@ type Riak struct {
 	port int
 }
 
+// NewRiak creates a riak client
+func NewRiak(host string, port int) *Riak {
+	return &Riak{
+		host: host,
+		port: port,
+	}
+}
+
 // GetDataTypes Gets Riak plans
 func (c *Riak) GetDataTypes() ([]map[string]string, error) {
 	var r []map[string]string
@@ -34,4 +44,26 @@ func (c *Riak) GetDataTypes() ([]map[string]string, error) {
 		})
 	}
 	return r, nil
+}
+
+func (c *Riak) CreateBucketType(bucketName, dataType string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) DeleteBucketType(bucketName, bucketType string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) CreateUser(username, password string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) DeleteUser(username string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) GrantUserAccess(username, bucketName string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) RevokeUserAccess(username, bucketName string) error {
+	return errors.New("Not implemented")
+}
+func (c *Riak) BucketStatus(bucketName string) error {
+	return errors.New("Not implemented")
 }
