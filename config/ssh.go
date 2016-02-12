@@ -33,6 +33,9 @@ func (s *SSH) getAuthMethods() []ssh.AuthMethod {
 	if s.SSHPassword != "" {
 		methods = append(methods, ssh.Password(s.SSHPassword))
 	}
+	if len(methods) == 0 {
+		logrus.Warning("No ssh authentication methods present")
+	}
 	logrus.Debugf("Processed '%d' ssh auth methods", len(methods))
 	return methods
 }

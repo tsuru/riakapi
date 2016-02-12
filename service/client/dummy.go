@@ -45,7 +45,7 @@ func (c *Dummy) Flush() {
 func (c *Dummy) GetBucketTypes() ([]map[string]string, error) {
 	var r []map[string]string
 
-	for k, v := range bucketTypes {
+	for k, v := range BucketTypes {
 		r = append(r, map[string]string{
 			"name":        k,
 			"description": v,
@@ -57,7 +57,7 @@ func (c *Dummy) GetBucketTypes() ([]map[string]string, error) {
 
 func (c *Dummy) CreateBucket(bucketName, bucketType string) error {
 	// Check bucket type
-	if _, ok := bucketTypes[bucketType]; !ok {
+	if _, ok := BucketTypes[bucketType]; !ok {
 		return errors.New("Not valid bucket type")
 	}
 

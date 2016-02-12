@@ -15,8 +15,15 @@ const (
 	BucketTypeMap = "tsuru-map"
 )
 
-// bucketTypes lists all the bucket types available
-var bucketTypes = map[string]string{
+// NameBucketTypeMapping maps bucket types to data types
+var NameBucketTypeMapping = map[string]string{
+	BucketTypeCounter: "counter",
+	BucketTypeSet:     "set",
+	BucketTypeMap:     "map",
+}
+
+// BucketTypes lists all the bucket types available
+var BucketTypes = map[string]string{
 	BucketTypeCounter: "Bucket type of counter data type",
 	BucketTypeSet:     "Bucket type of set data type",
 	BucketTypeMap:     "Bucket type of map data type",
