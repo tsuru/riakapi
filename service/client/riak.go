@@ -18,6 +18,11 @@ const (
 	activateBucketTypeCmd     = `sudo riak-admin bucket-type activate %s`
 )
 
+// This will hold the added instances on tsuru
+const (
+	RiakInstancesInfoBucket = "tsuru-instances"
+)
+
 // Riak is the entrypoint for riak client
 type Riak struct {
 	//SSHConnection SSH connection (for riak-admin manage operations)
@@ -80,7 +85,6 @@ func (c *Riak) CreateBucket(bucketName, bucketType string) error {
 	}
 
 	// First ensure the data types are createed (with Riak-admin)
-
 	if err := c.ensureBucketTypePresent(bucketType); err != nil {
 		logrus.Errorf("Could not ensure bucket type '%s' presence: %v", bucketType, err)
 		return err
@@ -92,7 +96,13 @@ func (c *Riak) CreateBucket(bucketName, bucketType string) error {
 		return err
 	}
 
-	logrus.Infof("Created bucket '%s' on bucket type '%s'", bucketName, bucketType)
+	// Third save the location of the created bucket (store its datatype)
+	if err := c.saveBucketLocation(bucketName, bucketType); err != nil {
+		logrus.Errorf("Could not save bucket '%s' location: %v", bucketName, err)
+		return err
+	}
+
+	logrus.Infof("Bucket '%s' of bucket type '%s' ready", bucketName, bucketType)
 	return nil
 }
 
@@ -181,13 +191,11 @@ func (c *Riak) ensureBucketPresent(bucketName, bucketType string) error {
 		return fmt.Errorf("Could not create bucket type: %v", err)
 	}
 
-	err = c.RiakClient.Execute(cmd)
-
-	if err != nil {
+	if err = c.RiakClient.Execute(cmd); err != nil {
 		return fmt.Errorf("Could not create bucket type: %v", err)
 	}
 
-	// Set props on bucket type
+	// Create bucket
 	propsCmd, err := riak.NewStoreBucketTypePropsCommandBuilder().
 		WithBucketType(bucketType).
 		WithAllowMult(true).
@@ -196,11 +204,39 @@ func (c *Riak) ensureBucketPresent(bucketName, bucketType string) error {
 		return fmt.Errorf("Could not set props on bucket type: %v", err)
 	}
 
-	err = c.RiakClient.Execute(propsCmd)
-
-	if err != nil {
+	if err = c.RiakClient.Execute(propsCmd); err != nil {
 		return fmt.Errorf("Could not set props on bucket type: %v", err)
 	}
 
+	logrus.Debugf("Bucket '%s' of bucket type '%s' created", bucketName, bucketType)
+	return nil
+}
+
+// saveBucketLocation will save the location (default bucket) of the bucketname
+// in key->value form: bucketName->bucketType this is used so we can reach the
+//bucket when we don't have the bucketType.
+func (c *Riak) saveBucketLocation(bucketNameKey, bucketTypeValue string) error {
+	// Our value to store
+	obj := &riak.Object{
+		ContentType:     "text/plain",
+		Charset:         "utf-8",
+		ContentEncoding: "utf-8",
+		Value:           []byte(bucketTypeValue),
+	}
+
+	// Create command
+	cmd, err := riak.NewStoreValueCommandBuilder().
+		WithBucket(RiakInstancesInfoBucket).
+		WithKey(bucketNameKey).
+		WithContent(obj).
+		Build()
+	if err != nil {
+		return fmt.Errorf("Could not store bucket location: %v", err)
+	}
+
+	if err := c.RiakClient.Execute(cmd); err != nil {
+		return fmt.Errorf("Could not store bucket location: %v", err)
+	}
+	logrus.Debugf("Bucket '%s' location stored", bucketNameKey)
 	return nil
 }
