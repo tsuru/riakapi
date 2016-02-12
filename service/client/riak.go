@@ -101,7 +101,7 @@ func (c *Riak) CreateBucket(bucketName, bucketType string) error {
 		logrus.Errorf("Could not save bucket '%s' location: %v", bucketName, err)
 		return err
 	}
-
+	c.GetBucketType(bucketName)
 	logrus.Infof("Bucket '%s' of bucket type '%s' ready", bucketName, bucketType)
 	return nil
 }
@@ -123,6 +123,37 @@ func (c *Riak) RevokeUserAccess(username, bucketName string) error {
 }
 func (c *Riak) BucketStatus(bucketName string) error {
 	return errors.New("Not implemented")
+}
+
+// GetBucketType returns the bucket type based on the bucket name
+func (c *Riak) GetBucketType(bucketName string) string {
+	var bucketType string
+
+	// Create command
+	cmd, err := riak.NewFetchValueCommandBuilder().
+		WithBucket(RiakInstancesInfoBucket).
+		WithKey(bucketName).
+		Build()
+	if err != nil {
+		return ""
+	}
+
+	if err = c.RiakClient.Execute(cmd); err != nil {
+		return ""
+	}
+
+	fvc, ok := cmd.(*riak.FetchValueCommand)
+	if !ok {
+		return ""
+	}
+	if len(fvc.Response.Values) == 0 {
+		return ""
+	}
+
+	bucketType = string(fvc.Response.Values[0].Value)
+	logrus.Debugf("Retrieved Bucket type '%s' from bucket name '%s'", bucketType, bucketName)
+
+	return bucketType
 }
 
 //ensureBucketTypePresent checks bucket type present and if not will create adn activate it
@@ -212,9 +243,9 @@ func (c *Riak) ensureBucketPresent(bucketName, bucketType string) error {
 	return nil
 }
 
-// saveBucketLocation will save the location (default bucket) of the bucketname
+// saveBucketLocation will save the location (default bucket type) of the bucketname
 // in key->value form: bucketName->bucketType this is used so we can reach the
-//bucket when we don't have the bucketType.
+// bucket when we don't have the bucketType.
 func (c *Riak) saveBucketLocation(bucketNameKey, bucketTypeValue string) error {
 	// Our value to store
 	obj := &riak.Object{
