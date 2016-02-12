@@ -5,3 +5,7 @@ import:
   - config
   - server
 - package: github.com/Sirupsen/logrus
+- package: github.com/basho/riak-go-client
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh

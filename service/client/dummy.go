@@ -33,7 +33,7 @@ func NewDummy() *Dummy {
 		users = make(map[string]userProps)
 	})
 
-	return &Dummy{&Riak{host: "127.0.0.1", port: 0}}
+	return &Dummy{&Riak{}}
 }
 
 // Used for tests

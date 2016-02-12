@@ -1,10 +1,20 @@
-hash: 0b783641746479b9ec259d3d691ec2b1f606ca9eeeb64e9e7e0b4e213b766f6a
-updated: 2016-02-10T14:10:04.229533943Z
+hash: fd1f16d5ee1a2eed97e2e67f50b848eb80e363d2f6ffbdfafcd0bb1310a7a4b5
+updated: 2016-02-12T07:41:42.520119182Z
 imports:
+- name: github.com/basho/backoff
+  version: 2ff7c4694083b5dbd71b21fd7cb7577477a74b31
+- name: github.com/basho/riak-go-client
+  version: 987b29fe0f2681aeb3228240fbbaa1b35e09e085
+  subpackages:
+  - rpb/riak
+  - rpb/riak_dt
+  - rpb/riak_kv
+  - rpb/riak_search
+  - rpb/riak_yokozuna
 - name: github.com/cyberdelia/go-metrics-graphite
   version: 7e54b5c2aa6eaff4286c44129c3def899dff528c
 - name: github.com/golang/protobuf
-  version: 001690d39bd620847bb265d93a7c5e1bd3737308
+  version: 0dfe8f37844c14cb32c7247925270e0f7ba90973
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -14,7 +24,7 @@ imports:
 - name: github.com/gorilla/mux
   version: 26a6070f849969ba72b72256e9f14cf519751690
 - name: github.com/hashicorp/consul
-  version: bb4c9d48c03dc034aa7040287ab5548dff43ae05
+  version: 13bfad9e1b0fab40f5b2f5f2c7ac21cb3f0a8d6d
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -28,7 +38,7 @@ imports:
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
 - name: github.com/NYTimes/gizmo
-  version: 2a003aac271a7559d9cbb598d965766d32aa3c22
+  version: 278ad6adbd9f6a06b17227c74b1da229a92e5dd8
   subpackages:
   - config
   - server
@@ -39,16 +49,20 @@ imports:
   version: 51425a2415d21afadfd55cd93432c0bc69e9598d
 - name: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
+- name: golang.org/x/crypto
+  version: 1f22c0103821b9390939b6776727195525381532
+  subpackages:
+  - ssh
 - name: golang.org/x/net
-  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
+  version: 8968c61983e8f51a91b8c0ef25bf739278c89634
   subpackages:
   - context
-  - trace
-  - internal/timeseries
   - http2
+  - trace
   - http2/hpack
+  - internal/timeseries
 - name: google.golang.org/grpc
-  version: 51d644aca6b8eca07b6bd2f5ea435998bf73fa92
+  version: 0631ecafac46db83db609486bedff561525c03e9
   subpackages:
   - metadata
   - codes

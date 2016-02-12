@@ -8,6 +8,7 @@ import (
 // ServiceConfig holds all the configuration of the application
 type ServiceConfig struct {
 	*Riak
+	*SSH
 
 	*config.Server
 }
@@ -17,6 +18,7 @@ func NewServiceConfig() *ServiceConfig {
 	cfg := &ServiceConfig{
 		Server: &config.Server{},
 		Riak:   &Riak{},
+		SSH:    &SSH{},
 	}
 
 	cfg.LoadConfiguration()
@@ -28,7 +30,7 @@ func NewServiceConfig() *ServiceConfig {
 func (s *ServiceConfig) LoadConfiguration() {
 	config.LoadEnvConfig(s)
 	config.LoadEnvConfig(s.Server)
-	config.LoadEnvConfig(s.Riak)
-
+	s.Riak.LoadRiakConfigFromEnv()
+	s.SSH.LoadSSHConfigFromEnv(s.Riak)
 	logrus.Info("Service configuration loaded")
 }

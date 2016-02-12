@@ -18,7 +18,8 @@ func main() {
 	server.Init("riak-api", cfg.Server)
 
 	// Create the client
-	client := client.NewDummy()
+	//client := client.NewDummy()
+	client := client.NewRiak(cfg)
 	rkSrv := service.NewRiakService(cfg, client)
 	err := server.Register(rkSrv)
 
