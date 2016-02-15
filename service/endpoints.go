@@ -2,8 +2,10 @@ package service
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -45,6 +47,7 @@ func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) 
 		return http.StatusInternalServerError, BucketCreationFailMsg, nil
 	}
 
+	logrus.Infof("Instace '%s' created", bucketName)
 	return http.StatusOK, "", nil
 }
 
@@ -52,7 +55,48 @@ func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) 
 // authentication credentias and authorization for teh desired bucket
 func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'BindInstance' endpoint")
-	return http.StatusNotImplemented, nil, nil
+
+	bucketName, ok := mux.Vars(r)["name"]
+	if !ok {
+		logrus.Errorf("Could not bind the instance: %s", MissingParamsMsg)
+		return http.StatusInternalServerError, MissingParamsMsg, nil
+	}
+
+	userWord := r.URL.Query().Get("app-host")
+
+	if userWord == "" {
+		logrus.Errorf("Could not bind the instance: %s", MissingParamsMsg)
+		return http.StatusInternalServerError, MissingParamsMsg, nil
+	}
+
+	// Create the user and pass (if not present already from previous instances)
+	user, pass, err := s.Client.EnsureUserPresent(userWord)
+
+	if err != nil {
+		logrus.Errorf("Could not Bind the instance: %s", err)
+		return http.StatusInternalServerError, BucketCreationFailMsg, nil
+
+	}
+
+	// Grant access on bucket
+	err = s.Client.GrantUserAccess(user, bucketName)
+	if err != nil {
+		logrus.Errorf("Could not Bind the instance: %s", err)
+		return http.StatusInternalServerError, BucketCreationFailMsg, nil
+	}
+
+	// The required env vars
+	envVars := map[string]string{
+		"RIAK_HOST":        s.Cfg.RiakHost,
+		"RIAK_HTTP_PORT":   strconv.Itoa(8098),
+		"RIAK_PB_PORT":     strconv.Itoa(8087),
+		"RIAK_USER":        user,
+		"RIAK_PASSWORD":    pass,
+		"RIAK_BUCKET_TYPE": s.Client.GetBucketType(bucketName),
+		"RIAK_BUCKET":      bucketName,
+	}
+
+	return http.StatusCreated, envVars, nil
 }
 
 // UnbindInstance Unbinds the instance from the app on Tsuru, this translates to

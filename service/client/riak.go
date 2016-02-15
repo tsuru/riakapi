@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
+	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
 )
 
 // Riak admin cmd fmts
@@ -16,11 +17,15 @@ const (
 	checkBucketTypePresentCmd = `sudo riak-admin bucket-type list | grep -e "%s"`
 	createBucketTypeCmd       = `sudo riak-admin bucket-type create %s '{"props":{"datatype":"%s", "allow_mult": true}}'`
 	activateBucketTypeCmd     = `sudo riak-admin bucket-type activate %s`
+
+	createUserCmd = `sudo riak-admin security add-user %s password="%s"`
+	grantUserCmd  = `sudo riak-admin security grant riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s to %s`
 )
 
 // This will hold the added instances on tsuru
 const (
 	RiakInstancesInfoBucket = "tsuru-instances"
+	RiakUsersInfoBucket     = "tsuru-users"
 )
 
 // Riak is the entrypoint for riak client
@@ -106,16 +111,102 @@ func (c *Riak) CreateBucket(bucketName, bucketType string) error {
 	return nil
 }
 
+// EnsureUserPresent stores the user and password (based on a reference word) on the database if there
+// aren't present, returns the generated user and password or previous stored one
+func (c *Riak) EnsureUserPresent(word string) (user, pass string, err error) {
+	user = utils.GenerateUsername(word)
+
+	// Check the user is previously created (if yes then teh password will be
+	// retrieved)
+	cmd, err := riak.NewFetchValueCommandBuilder().
+		WithBucket(RiakUsersInfoBucket).
+		WithKey(user).
+		Build()
+	if err != nil {
+		return
+	}
+
+	if err = c.RiakClient.Execute(cmd); err != nil {
+		return
+	}
+
+	fvc, ok := cmd.(*riak.FetchValueCommand)
+	if !ok {
+		err = errors.New("Could not fetch any value")
+		return
+	}
+	// No values, we create the values
+	if len(fvc.Response.Values) == 0 {
+		logrus.Debugf("Creating new user '%s' with password", user)
+		// Store user and password
+		// Our value to store
+		//TODO: Change salt
+		pass = utils.GeneratePassword(user, "xxxxxxxxx")
+		obj := &riak.Object{
+			ContentType:     "text/plain",
+			Charset:         "utf-8",
+			ContentEncoding: "utf-8",
+			Value:           []byte(pass),
+		}
+		cmd, err = riak.NewStoreValueCommandBuilder().
+			WithBucket(RiakUsersInfoBucket).
+			WithKey(user).
+			WithContent(obj).
+			Build()
+
+		if err != nil {
+			return
+		}
+
+		// Save
+		if err = c.RiakClient.Execute(cmd); err != nil {
+			return
+		}
+
+		// Create the user on raik
+		cmd := fmt.Sprintf(createUserCmd, user, pass)
+		session, _ := c.SSHClient.NewSession()
+
+		err = session.Run(cmd)
+		session.Close()
+		if err != nil {
+			return
+		}
+
+		logrus.Debugf("User '%s' created on riak", user)
+
+	} else {
+		pass = string(fvc.Response.Values[0].Value)
+		logrus.Debugf("Retrieved user '%s'", user)
+	}
+	logrus.Infof("User '%s' ready", user)
+	return
+}
+
+// GrantUserAccess grants access to a bucket on riak
+func (c *Riak) GrantUserAccess(username, bucketName string) error {
+	bucketType := c.GetBucketType(bucketName)
+
+	// Create the user on raik
+	cmd := fmt.Sprintf(grantUserCmd, bucketType, bucketName, username)
+	session, _ := c.SSHClient.NewSession()
+
+	err := session.Run(cmd)
+	session.Close()
+	if err != nil {
+		return fmt.Errorf("Error granting user on bucket: %v", err)
+	}
+
+	logrus.Infof("User '%s' granted on %s.%s", username, bucketType, bucketName)
+
+	return nil
+}
+
 func (c *Riak) DeleteBucket(bucketName, bucketType string) error {
 	return errors.New("Not implemented")
 }
-func (c *Riak) CreateUser(username, password string) error {
-	return errors.New("Not implemented")
-}
+
 func (c *Riak) DeleteUser(username string) error {
-	return errors.New("Not implemented")
-}
-func (c *Riak) GrantUserAccess(username, bucketName string) error {
 	return errors.New("Not implemented")
 }
 func (c *Riak) RevokeUserAccess(username, bucketName string) error {
@@ -196,6 +287,7 @@ func (c *Riak) ensureBucketTypePresent(bucketType string) error {
 	return nil
 }
 
+// ensureBucketPresent creates a bucket of a buckettype if neccesary
 func (c *Riak) ensureBucketPresent(bucketName, bucketType string) error {
 	// Select the correct data type and create the bucket
 	var cmd riak.Command

@@ -31,10 +31,11 @@ var BucketTypes = map[string]string{
 
 // Client is the interface to the storer
 type Client interface {
+	GetBucketType(bucketName string) string
 	GetBucketTypes() ([]map[string]string, error)
 	CreateBucket(bucketName, bucketType string) error
 	DeleteBucket(bucketName, bucketType string) error
-	CreateUser(username, password string) error
+	EnsureUserPresent(word string) (user, pass string, err error)
 	DeleteUser(username string) error
 	GrantUserAccess(username, bucketName string) error
 	RevokeUserAccess(username, bucketName string) error
@@ -50,11 +51,12 @@ func NewNil() *Nil {
 	return &Nil{}
 }
 
-func (c *Nil) GetBucketTypes() ([]map[string]string, error)       { return []map[string]string{}, nil }
-func (c *Nil) CreateBucket(bucketName, bucketType string) error   { return nil }
-func (c *Nil) DeleteBucket(bucketName, bucketType string) error   { return nil }
-func (c *Nil) CreateUser(username, password string) error         { return nil }
-func (c *Nil) DeleteUser(username string) error                   { return nil }
-func (c *Nil) GrantUserAccess(username, bucketName string) error  { return nil }
-func (c *Nil) RevokeUserAccess(username, bucketName string) error { return nil }
-func (c *Nil) BucketStatus(bucketName string) error               { return nil }
+func (c *Nil) GetBucketType(bucketName string) string                       { return "" }
+func (c *Nil) GetBucketTypes() ([]map[string]string, error)                 { return []map[string]string{}, nil }
+func (c *Nil) CreateBucket(bucketName, bucketType string) error             { return nil }
+func (c *Nil) DeleteBucket(bucketName, bucketType string) error             { return nil }
+func (c *Nil) EnsureUserPresent(word string) (user, pass string, err error) { return "", "", nil }
+func (c *Nil) DeleteUser(username string) error                             { return nil }
+func (c *Nil) GrantUserAccess(username, bucketName string) error            { return nil }
+func (c *Nil) RevokeUserAccess(username, bucketName string) error           { return nil }
+func (c *Nil) BucketStatus(bucketName string) error                         { return nil }
