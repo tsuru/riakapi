@@ -5,15 +5,11 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+
+	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
 )
 
-var buckets map[string]string
-var users map[string]userProps
-
-var bucketsMutex = &sync.Mutex{}
-var usersMutex = &sync.Mutex{}
-
-type userProps struct {
+type UserProps struct {
 	username string
 	password string
 	ACL      []string // bucket names wich can access
@@ -22,24 +18,24 @@ type userProps struct {
 // Dummy is the entrypoint for riak dummy client
 type Dummy struct {
 	*Riak
+
+	// Our custom database (on the instance to allow parallel tests)
+	Buckets map[string]string
+	Users   map[string]UserProps
+
+	bucketsMutex *sync.Mutex
+	usersMutex   *sync.Mutex
 }
 
 // NewDummy creates a dummy client, useful for testing
 func NewDummy() *Dummy {
-	// init once only
-	var once sync.Once
-	once.Do(func() {
-		buckets = make(map[string]string)
-		users = make(map[string]userProps)
-	})
-
-	return &Dummy{&Riak{}}
-}
-
-// Used for tests
-func (c *Dummy) Flush() {
-	buckets = make(map[string]string)
-	users = make(map[string]userProps)
+	return &Dummy{
+		Riak:         &Riak{},
+		Buckets:      map[string]string{},
+		Users:        map[string]UserProps{},
+		bucketsMutex: &sync.Mutex{},
+		usersMutex:   &sync.Mutex{},
+	}
 }
 
 func (c *Dummy) GetBucketTypes() ([]map[string]string, error) {
@@ -61,43 +57,50 @@ func (c *Dummy) CreateBucket(bucketName, bucketType string) error {
 		return errors.New("Not valid bucket type")
 	}
 
-	bucketsMutex.Lock()
-	defer bucketsMutex.Unlock()
-	if _, ok := buckets[bucketName]; !ok {
-		buckets[bucketName] = bucketType
+	c.bucketsMutex.Lock()
+	defer c.bucketsMutex.Unlock()
+	if _, ok := c.Buckets[bucketName]; !ok {
+		c.Buckets[bucketName] = bucketType
 		logrus.Infof("Bucket '%s' of type '%s' created", bucketName, bucketType)
 		return nil
 	}
 	return errors.New("Bucket already declared")
 }
 func (c *Dummy) DeleteBucket(bucketName, bucketType string) error {
-	bucketsMutex.Lock()
-	defer bucketsMutex.Unlock()
-	if _, ok := buckets[bucketName]; ok {
-		delete(buckets, bucketName)
+	c.bucketsMutex.Lock()
+	defer c.bucketsMutex.Unlock()
+	if _, ok := c.Buckets[bucketName]; ok {
+		delete(c.Buckets, bucketName)
 		return nil
 	}
 	return nil
 }
-func (c *Dummy) CreateUser(username, password string) error {
-	usersMutex.Lock()
-	defer usersMutex.Unlock()
-	if _, ok := users[username]; !ok {
-		users[username] = userProps{
-			username: username,
-			password: password,
+
+func (c *Dummy) EnsureUserPresent(word string) (user, pass string, err error) {
+	c.usersMutex.Lock()
+	defer c.usersMutex.Unlock()
+	//TODO: use salt
+	user = utils.GenerateUsername(word)
+	var props UserProps
+	var ok bool
+	if props, ok = c.Users[user]; !ok {
+		pass = utils.GeneratePassword(word, "xxxxxxxxxx")
+		c.Users[user] = UserProps{
+			username: user,
+			password: pass,
 			ACL:      []string{},
 		}
-		return nil
+		return
 	}
-	return errors.New("User already present")
+	pass = props.password
+	return
 }
 func (c *Dummy) DeleteUser(username string) error {
-	usersMutex.Lock()
-	defer usersMutex.Unlock()
+	c.usersMutex.Lock()
+	defer c.usersMutex.Unlock()
 
-	if _, ok := users[username]; ok {
-		delete(users, username)
+	if _, ok := c.Users[username]; ok {
+		delete(c.Users, username)
 		return nil
 	}
 	return errors.New("Theres no user to delete")

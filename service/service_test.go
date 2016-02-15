@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	gizmoConfig "github.com/NYTimes/gizmo/config"
@@ -14,7 +15,6 @@ import (
 )
 
 var serviceTestCfg = &config.ServiceConfig{Riak: &config.Riak{}, Server: &gizmoConfig.Server{}}
-var serviceTestClient = client.NewDummy()
 
 //func setUp() {
 //
@@ -27,6 +27,8 @@ var serviceTestClient = client.NewDummy()
 
 func TestGetPlans(t *testing.T) {
 
+	serviceTestClient := client.NewDummy()
+
 	correctPlans := []interface{}{
 		map[string]interface{}{"name": client.BucketTypeCounter, "description": "Bucket type of counter data type"},
 		map[string]interface{}{"name": client.BucketTypeSet, "description": "Bucket type of set data type"},
@@ -35,7 +37,7 @@ func TestGetPlans(t *testing.T) {
 
 	tests := []struct {
 		givenURI    string
-		givenClient client.Client
+		givenClient *client.Dummy
 		givenConfig *config.ServiceConfig
 		givenMethod string
 
@@ -82,54 +84,70 @@ func TestGetPlans(t *testing.T) {
 }
 
 func TestInstanceCreation(t *testing.T) {
-	tests := []struct {
-		givenURI    string
-		givenClient client.Client
-		givenConfig *config.ServiceConfig
-		givenMethod string
+	serviceTestClient := client.NewDummy()
 
-		wantCode int
-		wantBody interface{}
+	tests := []struct {
+		givenURI          string
+		givenClient       *client.Dummy
+		givenConfig       *config.ServiceConfig
+		givenMethod       string
+		givenDummyBuckets map[string]string
+
+		wantCode         int
+		wantBody         interface{}
+		wantDummyBuckets map[string]string
 	}{
 		{
-			givenURI:    "/resources",
-			givenClient: serviceTestClient,
-			givenConfig: serviceTestCfg,
-			givenMethod: "POST",
+			givenURI:          "/resources",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "POST",
+			givenDummyBuckets: map[string]string{},
 
-			wantCode: http.StatusInternalServerError,
-			wantBody: MissingParamsMsg,
+			wantCode:         http.StatusInternalServerError,
+			wantBody:         MissingParamsMsg,
+			wantDummyBuckets: map[string]string{},
 		},
 		{
-			givenURI:    "/resources?name=test-bucket&plan=wrong&team=myteam&user=username",
-			givenClient: serviceTestClient,
-			givenConfig: serviceTestCfg,
-			givenMethod: "POST",
+			givenURI:          "/resources?name=test-bucket&plan=wrong&team=myteam&user=username",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "POST",
+			givenDummyBuckets: map[string]string{},
 
-			wantCode: http.StatusInternalServerError,
-			wantBody: BucketCreationFailMsg,
+			wantCode:         http.StatusInternalServerError,
+			wantBody:         BucketCreationFailMsg,
+			wantDummyBuckets: map[string]string{},
 		},
 		{
-			givenURI:    "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
-			givenClient: serviceTestClient,
-			givenConfig: serviceTestCfg,
-			givenMethod: "POST",
+			givenURI:          "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "POST",
+			givenDummyBuckets: map[string]string{},
 
-			wantCode: http.StatusOK,
-			wantBody: "",
+			wantCode:         http.StatusOK,
+			wantBody:         "",
+			wantDummyBuckets: map[string]string{"test-bucket": "tsuru-counter"},
 		},
 		{ // Same test as previous one, will conflict the name
-			givenURI:    "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
-			givenClient: serviceTestClient,
-			givenConfig: serviceTestCfg,
-			givenMethod: "POST",
+			givenURI:          "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "POST",
+			givenDummyBuckets: map[string]string{"test-bucket": "tsuru-counter"},
 
-			wantCode: http.StatusInternalServerError,
-			wantBody: BucketCreationFailMsg,
+			wantCode:         http.StatusInternalServerError,
+			wantBody:         BucketCreationFailMsg,
+			wantDummyBuckets: map[string]string{"test-bucket": "tsuru-counter"},
 		},
 	}
 
 	for _, test := range tests {
+
+		// Set our initial state of the database
+		test.givenClient.Buckets = test.givenDummyBuckets
+
 		// Create our dummy server (with config & client)
 		srvr := server.NewSimpleServer(nil)
 		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
@@ -152,6 +170,11 @@ func TestInstanceCreation(t *testing.T) {
 		// Check len because api returns different order of the slice each time
 		if got != test.wantBody {
 			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
+		}
+
+		// Check state on dummy client is correct
+		if !reflect.DeepEqual(test.wantDummyBuckets, test.givenClient.Buckets) {
+			t.Errorf("expected dummy buckets %v; \ngot: %v", test.wantDummyBuckets, test.givenClient.Buckets)
 		}
 
 	}
