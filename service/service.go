@@ -69,14 +69,14 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 			//"DELETE": s.UnbindInstance,
 		},
 
-		//// (Un)?Bind events to make custom stuff
-		//"/resources/{name}/bind": map[string]server.JSONEndpoint{
-		//	// Bind app to instance event
-		//	"PUT": s.BindInstanceEvent,
+		// (Un)?Bind events to make custom stuff
+		"/resources/{name}/bind": map[string]server.JSONEndpoint{
+			// Bind app to instance event
+			"POST": s.BindInstanceEvent,
 
-		//	// Unbind app to instance event
-		//	"DELETE": s.UnbindInstanceEvent,
-		//},
+			// Unbind app to instance event
+			"DELETE": s.UnbindInstanceEvent,
+		},
 
 		//"/resources/{name}": map[string]server.JSONEndpoint{
 		//	// Removes the instance

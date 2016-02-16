@@ -108,14 +108,14 @@ func (s *RiakService) UnbindInstance(r *http.Request) (int, interface{}, error) 
 
 // BindInstanceEvent Processes the event from tsuru when an app is binded to a service instance
 func (s *RiakService) BindInstanceEvent(r *http.Request) (int, interface{}, error) {
-	logrus.Debug("Executing 'BindInstanceEvent' endpoint")
-	return http.StatusNotImplemented, nil, nil
+	logrus.Debug("Executing 'BindInstanceEvent' endpoint (no need to implement)")
+	return http.StatusCreated, "", nil
 }
 
 // UnbindInstanceEvent Processes the event from tsuru when an app is unbinded from a service instance
 func (s *RiakService) UnbindInstanceEvent(r *http.Request) (int, interface{}, error) {
-	logrus.Debug("Executing 'UnbindInstanceEvent' endpoint")
-	return http.StatusNotImplemented, nil, nil
+	logrus.Debug("Executing 'UnbindInstanceEvent' endpoint (no need to implement)")
+	return http.StatusOK, "", nil
 }
 
 // RemoveInstance Remove instance Removes the instance from tsuru. Translated to riak,  delete

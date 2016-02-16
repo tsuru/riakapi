@@ -347,3 +347,58 @@ func TestInstanceBindingWrong(t *testing.T) {
 		}
 	}
 }
+
+func TestInstanceBindingUnbindigEvents(t *testing.T) {
+	serviceTestClient := client.NewDummy()
+
+	tests := []struct {
+		givenURI    string
+		givenClient *client.Dummy
+		givenConfig *config.ServiceConfig
+		givenMethod string
+
+		wantCode int
+		wantBody string
+	}{
+		{
+			givenURI:    "/resources/testinstance/bind",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusCreated,
+			wantBody: "",
+		},
+		{
+			givenURI:    "/resources/testinstance/bind",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "DELETE",
+
+			wantCode: http.StatusOK,
+			wantBody: "",
+		},
+	}
+
+	for _, test := range tests {
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got string
+		json.NewDecoder(w.Body).Decode(&got)
+
+		if got != test.wantBody {
+			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
+		}
+	}
+
+}
