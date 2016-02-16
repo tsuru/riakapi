@@ -10,8 +10,8 @@ import (
 )
 
 type UserProps struct {
-	username string
-	password string
+	Username string
+	Password string
 	ACL      []string // bucket names wich can access
 }
 
@@ -21,7 +21,7 @@ type Dummy struct {
 
 	// Our custom database (on the instance to allow parallel tests)
 	Buckets map[string]string
-	Users   map[string]UserProps
+	Users   map[string]*UserProps
 
 	bucketsMutex *sync.Mutex
 	usersMutex   *sync.Mutex
@@ -32,10 +32,14 @@ func NewDummy() *Dummy {
 	return &Dummy{
 		Riak:         &Riak{},
 		Buckets:      map[string]string{},
-		Users:        map[string]UserProps{},
+		Users:        map[string]*UserProps{},
 		bucketsMutex: &sync.Mutex{},
 		usersMutex:   &sync.Mutex{},
 	}
+}
+
+func (c *Dummy) GetBucketType(bucketName string) string {
+	return c.Buckets[bucketName]
 }
 
 func (c *Dummy) GetBucketTypes() ([]map[string]string, error) {
@@ -81,20 +85,30 @@ func (c *Dummy) EnsureUserPresent(word string) (user, pass string, err error) {
 	defer c.usersMutex.Unlock()
 	//TODO: use salt
 	user = utils.GenerateUsername(word)
-	var props UserProps
+	var props *UserProps
 	var ok bool
 	if props, ok = c.Users[user]; !ok {
-		pass = utils.GeneratePassword(word, "xxxxxxxxxx")
-		c.Users[user] = UserProps{
-			username: user,
-			password: pass,
+		pass = word // handy when using on the tests
+		c.Users[user] = &UserProps{
+			Username: user,
+			Password: pass,
 			ACL:      []string{},
 		}
 		return
 	}
-	pass = props.password
+	pass = props.Password
 	return
 }
+func (c *Dummy) GrantUserAccess(username, bucketName string) error {
+	c.usersMutex.Lock()
+	defer c.usersMutex.Unlock()
+	if user, ok := c.Users[username]; ok {
+		user.ACL = append(user.ACL, bucketName)
+		return nil
+	}
+	return errors.New("Not present user")
+}
+
 func (c *Dummy) DeleteUser(username string) error {
 	c.usersMutex.Lock()
 	defer c.usersMutex.Unlock()
@@ -104,9 +118,6 @@ func (c *Dummy) DeleteUser(username string) error {
 		return nil
 	}
 	return errors.New("Theres no user to delete")
-}
-func (c *Dummy) GrantUserAccess(username, bucketName string) error {
-	return errors.New("Not implemented")
 }
 func (c *Dummy) RevokeUserAccess(username, bucketName string) error {
 	return errors.New("Not implemented")

@@ -66,26 +66,26 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 			// Binds an instance with an application
 			"POST": s.BindInstance,
 			// Unbinds an instance from an application
-			"DELETE": s.UnbindInstance,
+			//"DELETE": s.UnbindInstance,
 		},
 
-		// (Un)?Bind events to make custom stuff
-		"/resources/{name}/bind": map[string]server.JSONEndpoint{
-			// Bind app to instance event
-			"PUT": s.BindInstanceEvent,
+		//// (Un)?Bind events to make custom stuff
+		//"/resources/{name}/bind": map[string]server.JSONEndpoint{
+		//	// Bind app to instance event
+		//	"PUT": s.BindInstanceEvent,
 
-			// Unbind app to instance event
-			"DELETE": s.UnbindInstanceEvent,
-		},
+		//	// Unbind app to instance event
+		//	"DELETE": s.UnbindInstanceEvent,
+		//},
 
-		"/resources/{name}": map[string]server.JSONEndpoint{
-			// Removes the instance
-			"DELETE": s.RemoveInstance,
-		},
+		//"/resources/{name}": map[string]server.JSONEndpoint{
+		//	// Removes the instance
+		//	"DELETE": s.RemoveInstance,
+		//},
 
-		"/resources/{name}/status": map[string]server.JSONEndpoint{
-			// Checks the status of the instance
-			"GET": s.CheckInstanceStatus,
-		},
+		//"/resources/{name}/status": map[string]server.JSONEndpoint{
+		//	// Checks the status of the instance
+		//	"GET": s.CheckInstanceStatus,
+		//},
 	}
 }

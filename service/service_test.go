@@ -167,7 +167,7 @@ func TestInstanceCreation(t *testing.T) {
 			t.Error("unable to JSON decode response body: ", err)
 		}
 
-		// Check len because api returns different order of the slice each time
+		// Check body
 		if got != test.wantBody {
 			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
 		}
@@ -179,4 +179,139 @@ func TestInstanceCreation(t *testing.T) {
 
 	}
 
+}
+
+func TestInstanceBindingOK(t *testing.T) {
+	serviceTestClient := client.NewDummy()
+
+	tests := []struct {
+		givenURI          string
+		givenClient       *client.Dummy
+		givenConfig       *config.ServiceConfig
+		givenMethod       string
+		givenDummyUsers   map[string]*client.UserProps
+		givenDummyBuckets map[string]string
+
+		wantCode       int
+		wantBody       map[string]string
+		wantDummyUsers map[string]*client.UserProps
+	}{
+		{
+			givenURI:          "/resources/testinstance/bind-app?app-host=myapp.tsuru.io",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "POST",
+			givenDummyUsers:   map[string]*client.UserProps{},
+			givenDummyBuckets: map[string]string{"testinstance": "testbuckettype"},
+
+			wantCode: http.StatusCreated,
+			wantBody: map[string]string{
+				"RIAK_BUCKET":      "testinstance",
+				"RIAK_BUCKET_TYPE": "testbuckettype",
+				"RIAK_HOST":        "",
+				"RIAK_HTTP_PORT":   "8098",
+				"RIAK_PASSWORD":    "myapp.tsuru.io",
+				"RIAK_PB_PORT":     "8087",
+				"RIAK_USER":        "tsuru_myapp.tsuru.io",
+			},
+			wantDummyUsers: map[string]*client.UserProps{
+				"tsuru_myapp.tsuru.io": &client.UserProps{
+					Username: "tsuru_myapp.tsuru.io",
+					Password: "myapp.tsuru.io",
+					ACL:      []string{"testinstance"},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+
+		// Set our initial state of the database
+		test.givenClient.Users = test.givenDummyUsers
+		test.givenClient.Buckets = test.givenDummyBuckets
+
+		// Create our dummy server (with config & client)
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got map[string]string
+		err := json.NewDecoder(w.Body).Decode(&got)
+
+		// Dont fail the test if the decode fails when the unmarshalling is for
+		// invalid API calls
+		if err != nil {
+			t.Error("unable to JSON decode response body: ", err)
+		}
+
+		// Check body json decoded
+		if !reflect.DeepEqual(got, test.wantBody) {
+			t.Errorf("expected response body of\n%#v;\ngot\n%#v", test.wantBody, got)
+		}
+
+		// Check state on dummy client is correct
+		if len(test.wantDummyUsers) != len(test.givenClient.Users) {
+			t.Errorf("expected dummy users %v; \ngot: %v", test.wantDummyUsers, test.givenClient.Users)
+		}
+		for k, v := range test.wantDummyUsers {
+			u := test.givenClient.Users[k]
+			if v.Username != u.Username || v.Password != u.Password || len(v.ACL) != len(u.ACL) {
+				t.Errorf("expected dummy users %v; \ngot: %v", test.wantDummyUsers, test.givenClient.Users)
+			}
+		}
+
+	}
+}
+
+func TestInstanceBindingWrong(t *testing.T) {
+	serviceTestClient := client.NewDummy()
+
+	tests := []struct {
+		givenURI    string
+		givenClient *client.Dummy
+		givenConfig *config.ServiceConfig
+		givenMethod string
+
+		wantCode int
+		wantBody string
+	}{
+		{
+			givenURI:    "/resources/testinstance/bind-app",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+
+			wantCode: http.StatusInternalServerError,
+			wantBody: MissingParamsMsg,
+		},
+	}
+
+	for _, test := range tests {
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got string
+		json.NewDecoder(w.Body).Decode(&got)
+
+		if got != test.wantBody {
+			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
+		}
+	}
 }
