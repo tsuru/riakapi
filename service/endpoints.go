@@ -11,11 +11,16 @@ import (
 )
 
 const (
-	MissingParamsMsg      = "Missing parameters"
+	// MissingParamsMsg message when parameters are required
+	MissingParamsMsg = "Missing parameters"
+	// BucketCreationFailMsg message when bucket creation fails
 	BucketCreationFailMsg = "Error declaring bucket type"
-	ErrorBucketStatusMsg  = "Bucket error"
-	UserGratingFailMsg    = "Error granting user"
-	UserRevokingFailMsg   = "Error revoking user"
+	// ErrorBucketStatusMsg message when bucket status is in error state
+	ErrorBucketStatusMsg = "Bucket error"
+	// UserGrantingFailMsg message when granting access to users fails
+	UserGrantingFailMsg = "Error granting user"
+	// UserRevokingFailMsg message when revoking access to users fails
+	UserRevokingFailMsg = "Error revoking user"
 )
 
 // GetPlans returns a json with the available plans on tsuru. Translated to riak,
@@ -71,7 +76,7 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 
 	if err != nil {
 		logrus.Errorf("Could not Bind the instance: %s", err)
-		return http.StatusInternalServerError, UserGratingFailMsg, nil
+		return http.StatusInternalServerError, UserGrantingFailMsg, nil
 
 	}
 
@@ -79,7 +84,7 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 	err = s.Client.GrantUserAccess(user, bucketName)
 	if err != nil {
 		logrus.Errorf("Could not Bind the instance: %s", err)
-		return http.StatusInternalServerError, UserGratingFailMsg, nil
+		return http.StatusInternalServerError, UserGrantingFailMsg, nil
 	}
 
 	// The required env vars
@@ -111,6 +116,9 @@ func (s *RiakService) UnbindInstance(r *http.Request) (int, interface{}, error) 
 	username := utils.GenerateUsername(userWord)
 	err := s.Client.RevokeUserAccess(username, bucketName)
 
+	// TODO: Delete user
+	// NOTE: Keep track of users instances and delete on last one
+
 	if err != nil {
 		logrus.Errorf("Could not unbind the instance: %s", err)
 		return http.StatusInternalServerError, UserRevokingFailMsg, nil
@@ -132,10 +140,11 @@ func (s *RiakService) UnbindInstanceEvent(r *http.Request) (int, interface{}, er
 }
 
 // RemoveInstance Remove instance Removes the instance from tsuru. Translated to riak,  delete
-// all the keys from the bucket (causing bucket deletion)
+// all the keys from the bucket (causing bucket deletion) -> not a good choice, not deleting bucket
+// Bucket will persist 'forever'
 func (s *RiakService) RemoveInstance(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'RemoveInstance' endpoint")
-	return http.StatusNotImplemented, nil, nil
+	return http.StatusOK, "", nil
 }
 
 // CheckInstanceStatus Checks the status of an instance on tsuru. TRanslated to riak,

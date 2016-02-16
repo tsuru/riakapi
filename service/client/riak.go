@@ -204,12 +204,21 @@ func (c *Riak) GrantUserAccess(username, bucketName string) error {
 	return nil
 }
 
+// DeleteBucket Deletes a bucket on riak
 func (c *Riak) DeleteBucket(bucketName, bucketType string) error {
-	return errors.New("Not implemented")
+	// It's decided to not delete a riak bucket because there is not a proper way
+	// of doing this. for riak a bucket is only a namespace, so unless there aren't
+	// keys on the bucket then the bucket will always exists. Deleting all the keys
+	// one by one is not a good choice
+	return errors.New("Should not delete a riak bucket for now")
 }
 
+// DeleteUser Deletes a user on riak
 func (c *Riak) DeleteUser(username string) error {
-	return errors.New("Not implemented")
+	// It's decided to not delete the riak user  because we can be connected to
+	// various instances with the same user, and keeping track of this add
+	// unecessary logic, revoking access to bucket is the only requirement
+	return errors.New("Should not delete a riak user for now")
 }
 
 // RevokeUserAccess revokes access to user on a bucket

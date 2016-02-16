@@ -78,10 +78,10 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 			"DELETE": s.UnbindInstanceEvent,
 		},
 
-		//"/resources/{name}": map[string]server.JSONEndpoint{
-		//	// Removes the instance
-		//	"DELETE": s.RemoveInstance,
-		//},
+		"/resources/{name}": map[string]server.JSONEndpoint{
+			// Removes the instance
+			"DELETE": s.RemoveInstance,
+		},
 
 		"/resources/{name}/status": map[string]server.JSONEndpoint{
 			// Checks the status of the instance
