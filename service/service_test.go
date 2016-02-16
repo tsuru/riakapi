@@ -402,3 +402,63 @@ func TestInstanceBindingUnbindigEvents(t *testing.T) {
 	}
 
 }
+
+func TestInstanceStatus(t *testing.T) {
+	serviceTestClient := client.NewDummy()
+
+	tests := []struct {
+		givenURI          string
+		givenClient       *client.Dummy
+		givenConfig       *config.ServiceConfig
+		givenMethod       string
+		givenDummyBuckets map[string]string
+
+		wantCode int
+		wantBody string
+	}{
+		{
+			givenURI:          "/resources/testinstance/status",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "GET",
+			givenDummyBuckets: map[string]string{"testinstance": "tsuru-counter"},
+
+			wantCode: http.StatusNoContent,
+			wantBody: "",
+		},
+		{
+			givenURI:          "/resources/testinstance/status",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "GET",
+			givenDummyBuckets: map[string]string{},
+
+			wantCode: http.StatusInternalServerError,
+			wantBody: ErrorBucketStatusMsg,
+		},
+	}
+
+	for _, test := range tests {
+		test.givenClient.Buckets = test.givenDummyBuckets
+
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got string
+		json.NewDecoder(w.Body).Decode(&got)
+
+		if got != test.wantBody {
+			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
+		}
+	}
+
+}

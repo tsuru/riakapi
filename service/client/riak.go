@@ -212,9 +212,6 @@ func (c *Riak) DeleteUser(username string) error {
 func (c *Riak) RevokeUserAccess(username, bucketName string) error {
 	return errors.New("Not implemented")
 }
-func (c *Riak) BucketStatus(bucketName string) error {
-	return errors.New("Not implemented")
-}
 
 // GetBucketType returns the bucket type based on the bucket name
 func (c *Riak) GetBucketType(bucketName string) string {
@@ -362,4 +359,44 @@ func (c *Riak) saveBucketLocation(bucketNameKey, bucketTypeValue string) error {
 	}
 	logrus.Debugf("Bucket '%s' location stored", bucketNameKey)
 	return nil
+}
+
+// IsAlive checks if riak store is alive
+func (c *Riak) IsAlive(bucketName string) (alive bool, err error) {
+
+	bucketType := c.GetBucketType(bucketName)
+
+	// Check buckets present
+	cmd, err := riak.NewListBucketsCommandBuilder().
+		WithBucketType(bucketType).
+		Build()
+
+	if err != nil {
+		logrus.Errorf("Bucket not alive: %v", err)
+		return
+	}
+
+	err = c.RiakClient.Execute(cmd)
+	if err != nil {
+		logrus.Errorf("Bucket not alive: %v", err)
+		return
+	}
+
+	lbc, ok := cmd.(*riak.ListBucketsCommand)
+	if !ok {
+		err = errors.New("Could not retrieve list of buckets")
+		logrus.Errorf("Bucket not alive: %v", err)
+		return
+	}
+
+	for _, b := range lbc.Response.Buckets {
+		if b == bucketName {
+			logrus.Debugf("Bucket '%s' alive", bucketName)
+			return true, nil
+		}
+	}
+	err = errors.New("bucket not in riak")
+	logrus.Errorf("Bucket not alive: %v", err)
+	return
+
 }

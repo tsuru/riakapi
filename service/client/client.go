@@ -39,7 +39,7 @@ type Client interface {
 	DeleteUser(username string) error
 	GrantUserAccess(username, bucketName string) error
 	RevokeUserAccess(username, bucketName string) error
-	BucketStatus(bucketName string) error
+	IsAlive(bucketName string) (alive bool, err error)
 }
 
 // Nil implements client interface doing nothing
@@ -59,4 +59,4 @@ func (c *Nil) EnsureUserPresent(word string) (user, pass string, err error) { re
 func (c *Nil) DeleteUser(username string) error                             { return nil }
 func (c *Nil) GrantUserAccess(username, bucketName string) error            { return nil }
 func (c *Nil) RevokeUserAccess(username, bucketName string) error           { return nil }
-func (c *Nil) BucketStatus(bucketName string) error                         { return nil }
+func (c *Nil) IsAlive(bucketName string) (alive bool, err error)            { return false, nil }

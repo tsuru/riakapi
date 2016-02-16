@@ -125,9 +125,18 @@ func (c *Dummy) DeleteUser(username string) error {
 	}
 	return errors.New("Theres no user to delete")
 }
+
 func (c *Dummy) RevokeUserAccess(username, bucketName string) error {
 	return errors.New("Not implemented")
 }
-func (c *Dummy) BucketStatus(bucketName string) error {
-	return errors.New("Not implemented")
+
+func (c *Dummy) IsAlive(bucketName string) (alive bool, err error) {
+	c.bucketsMutex.Lock()
+	defer c.bucketsMutex.Unlock()
+	if _, ok := c.Buckets[bucketName]; ok {
+		alive = true
+		return
+	}
+	err = errors.New("Dummy not alive")
+	return
 }

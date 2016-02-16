@@ -11,6 +11,7 @@ import (
 const (
 	MissingParamsMsg      = "Missing parameters"
 	BucketCreationFailMsg = "Error declaring bucket type"
+	ErrorBucketStatusMsg  = "Bucket error"
 )
 
 // GetPlans returns a json with the available plans on tsuru. Translated to riak,
@@ -19,7 +20,6 @@ func (s *RiakService) GetPlans(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'GetPlans' endpoint")
 
 	plans, err := s.Client.GetBucketTypes()
-
 	if err != nil {
 		return http.StatusInternalServerError, map[string]error{"error": err}, err
 	}
@@ -34,7 +34,6 @@ func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) 
 
 	bucketName := r.URL.Query().Get("name")
 	bucketType := r.URL.Query().Get("plan")
-
 	if bucketName == "" || bucketType == "" {
 		logrus.Errorf("Could not create the instance: %s", MissingParamsMsg)
 		return http.StatusInternalServerError, MissingParamsMsg, nil
@@ -56,14 +55,8 @@ func (s *RiakService) CreateInstance(r *http.Request) (int, interface{}, error) 
 func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'BindInstance' endpoint")
 
-	bucketName, ok := mux.Vars(r)["name"]
-	if !ok {
-		logrus.Errorf("Could not bind the instance: %s", MissingParamsMsg)
-		return http.StatusInternalServerError, MissingParamsMsg, nil
-	}
-
+	bucketName, _ := mux.Vars(r)["name"]
 	userWord := r.URL.Query().Get("app-host")
-
 	if userWord == "" {
 		logrus.Errorf("Could not bind the instance: %s", MissingParamsMsg)
 		return http.StatusInternalServerError, MissingParamsMsg, nil
@@ -129,5 +122,12 @@ func (s *RiakService) RemoveInstance(r *http.Request) (int, interface{}, error) 
 // Checks teh status of the bucket
 func (s *RiakService) CheckInstanceStatus(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'CheckInstanceStatus' endpoint")
-	return http.StatusNotImplemented, nil, nil
+
+	bucketName, _ := mux.Vars(r)["name"]
+	ok, err := s.Client.IsAlive(bucketName)
+	if ok {
+		return http.StatusNoContent, nil, nil
+	}
+	logrus.Errorf("Bucket error: %v", err)
+	return http.StatusInternalServerError, ErrorBucketStatusMsg, nil
 }
