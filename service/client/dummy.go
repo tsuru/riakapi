@@ -103,6 +103,12 @@ func (c *Dummy) GrantUserAccess(username, bucketName string) error {
 	c.usersMutex.Lock()
 	defer c.usersMutex.Unlock()
 	if user, ok := c.Users[username]; ok {
+		// Check if present already (performance on dummy doesn't matter)
+		for _, a := range user.ACL {
+			if a == bucketName {
+				return nil
+			}
+		}
 		user.ACL = append(user.ACL, bucketName)
 		return nil
 	}

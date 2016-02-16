@@ -196,12 +196,44 @@ func TestInstanceBindingOK(t *testing.T) {
 		wantBody       map[string]string
 		wantDummyUsers map[string]*client.UserProps
 	}{
-		{
+		{ // Check new app binding
 			givenURI:          "/resources/testinstance/bind-app?app-host=myapp.tsuru.io",
 			givenClient:       serviceTestClient,
 			givenConfig:       serviceTestCfg,
 			givenMethod:       "POST",
 			givenDummyUsers:   map[string]*client.UserProps{},
+			givenDummyBuckets: map[string]string{"testinstance": "testbuckettype"},
+
+			wantCode: http.StatusCreated,
+			wantBody: map[string]string{
+				"RIAK_BUCKET":      "testinstance",
+				"RIAK_BUCKET_TYPE": "testbuckettype",
+				"RIAK_HOST":        "",
+				"RIAK_HTTP_PORT":   "8098",
+				"RIAK_PASSWORD":    "myapp.tsuru.io",
+				"RIAK_PB_PORT":     "8087",
+				"RIAK_USER":        "tsuru_myapp.tsuru.io",
+			},
+			wantDummyUsers: map[string]*client.UserProps{
+				"tsuru_myapp.tsuru.io": &client.UserProps{
+					Username: "tsuru_myapp.tsuru.io",
+					Password: "myapp.tsuru.io",
+					ACL:      []string{"testinstance"},
+				},
+			},
+		},
+		{ // Check when already binded
+			givenURI:    "/resources/testinstance/bind-app?app-host=myapp.tsuru.io",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "POST",
+			givenDummyUsers: map[string]*client.UserProps{
+				"tsuru_myapp.tsuru.io": &client.UserProps{
+					Username: "tsuru_myapp.tsuru.io",
+					Password: "myapp.tsuru.io",
+					ACL:      []string{"testinstance"},
+				},
+			},
 			givenDummyBuckets: map[string]string{"testinstance": "testbuckettype"},
 
 			wantCode: http.StatusCreated,
@@ -264,7 +296,7 @@ func TestInstanceBindingOK(t *testing.T) {
 		for k, v := range test.wantDummyUsers {
 			u := test.givenClient.Users[k]
 			if v.Username != u.Username || v.Password != u.Password || len(v.ACL) != len(u.ACL) {
-				t.Errorf("expected dummy users %v; \ngot: %v", test.wantDummyUsers, test.givenClient.Users)
+				t.Errorf("expected dummy user %v; \ngot: %v", *v, *u)
 			}
 		}
 
