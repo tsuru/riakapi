@@ -66,7 +66,7 @@ func (s *RiakService) JSONEndpoints() map[string]map[string]server.JSONEndpoint 
 			// Binds an instance with an application
 			"POST": s.BindInstance,
 			// Unbinds an instance from an application
-			//"DELETE": s.UnbindInstance,
+			"DELETE": s.UnbindInstance,
 		},
 
 		// (Un)?Bind events to make custom stuff

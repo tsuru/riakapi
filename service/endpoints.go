@@ -6,12 +6,16 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+
+	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
 )
 
 const (
 	MissingParamsMsg      = "Missing parameters"
 	BucketCreationFailMsg = "Error declaring bucket type"
 	ErrorBucketStatusMsg  = "Bucket error"
+	UserGratingFailMsg    = "Error granting user"
+	UserRevokingFailMsg   = "Error revoking user"
 )
 
 // GetPlans returns a json with the available plans on tsuru. Translated to riak,
@@ -67,7 +71,7 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 
 	if err != nil {
 		logrus.Errorf("Could not Bind the instance: %s", err)
-		return http.StatusInternalServerError, BucketCreationFailMsg, nil
+		return http.StatusInternalServerError, UserGratingFailMsg, nil
 
 	}
 
@@ -75,7 +79,7 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 	err = s.Client.GrantUserAccess(user, bucketName)
 	if err != nil {
 		logrus.Errorf("Could not Bind the instance: %s", err)
-		return http.StatusInternalServerError, BucketCreationFailMsg, nil
+		return http.StatusInternalServerError, UserGratingFailMsg, nil
 	}
 
 	// The required env vars
@@ -96,7 +100,23 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 // remove credentials from the desired bucket
 func (s *RiakService) UnbindInstance(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'UnbindInstance' endpoint")
-	return http.StatusNotImplemented, nil, nil
+
+	bucketName, _ := mux.Vars(r)["name"]
+	userWord := r.URL.Query().Get("app-host")
+	if userWord == "" {
+		logrus.Errorf("Could not unbind the instance: %s", MissingParamsMsg)
+		return http.StatusInternalServerError, MissingParamsMsg, nil
+	}
+	// Revoke access to the user
+	username := utils.GenerateUsername(userWord)
+	err := s.Client.RevokeUserAccess(username, bucketName)
+
+	if err != nil {
+		logrus.Errorf("Could not unbind the instance: %s", err)
+		return http.StatusInternalServerError, UserRevokingFailMsg, nil
+	}
+
+	return http.StatusOK, "", nil
 }
 
 // BindInstanceEvent Processes the event from tsuru when an app is binded to a service instance

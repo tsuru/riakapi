@@ -400,7 +400,6 @@ func TestInstanceBindingUnbindigEvents(t *testing.T) {
 			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
 		}
 	}
-
 }
 
 func TestInstanceStatus(t *testing.T) {
@@ -460,5 +459,97 @@ func TestInstanceStatus(t *testing.T) {
 			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
 		}
 	}
+}
 
+func TestInstanceUnbinding(t *testing.T) {
+	serviceTestClient := client.NewDummy()
+
+	tests := []struct {
+		givenURI          string
+		givenClient       *client.Dummy
+		givenConfig       *config.ServiceConfig
+		givenMethod       string
+		givenDummyUsers   map[string]*client.UserProps
+		givenDummyBuckets map[string]string
+
+		wantCode       int
+		wantBody       string
+		wantDummyUsers map[string]*client.UserProps
+	}{
+		{
+			givenURI:    "/resources/testinstance/bind-app?app-host=myapp.tsuru.io",
+			givenClient: serviceTestClient,
+			givenConfig: serviceTestCfg,
+			givenMethod: "DELETE",
+			givenDummyUsers: map[string]*client.UserProps{
+				"tsuru_myapp.tsuru.io": &client.UserProps{
+					Username: "tsuru_myapp.tsuru.io",
+					Password: "myapp.tsuru.io",
+					ACL:      []string{"testinstance"},
+				},
+			},
+			givenDummyBuckets: map[string]string{"testinstance": "testbuckettype"},
+
+			wantCode: http.StatusOK,
+			wantBody: "",
+			wantDummyUsers: map[string]*client.UserProps{
+				"tsuru_myapp.tsuru.io": &client.UserProps{
+					Username: "tsuru_myapp.tsuru.io",
+					Password: "myapp.tsuru.io",
+					ACL:      []string{},
+				},
+			},
+		},
+		{ // Not a valid user
+			givenURI:          "/resources/testinstance/bind-app?app-host=myapp.tsuru.io",
+			givenClient:       serviceTestClient,
+			givenConfig:       serviceTestCfg,
+			givenMethod:       "DELETE",
+			givenDummyUsers:   map[string]*client.UserProps{},
+			givenDummyBuckets: map[string]string{},
+
+			wantCode:       http.StatusInternalServerError,
+			wantBody:       UserRevokingFailMsg,
+			wantDummyUsers: map[string]*client.UserProps{},
+		},
+	}
+
+	for _, test := range tests {
+		// Set our initial state of the database
+		test.givenClient.Users = test.givenDummyUsers
+		test.givenClient.Buckets = test.givenDummyBuckets
+
+		// Create our dummy server (with config & client)
+		srvr := server.NewSimpleServer(nil)
+		srvr.Register(&RiakService{Cfg: test.givenConfig, Client: test.givenClient})
+
+		// Create the request
+		r, _ := http.NewRequest(test.givenMethod, test.givenURI, nil)
+		w := httptest.NewRecorder()
+		srvr.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("expected response code of %d; got %d", test.wantCode, w.Code)
+		}
+
+		var got string
+		json.NewDecoder(w.Body).Decode(&got)
+
+		if got != test.wantBody {
+			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
+		}
+
+		// Check state on dummy client is correct
+		if len(test.wantDummyUsers) != len(test.givenClient.Users) {
+			t.Errorf("expected dummy users %v; \ngot: %v", test.wantDummyUsers, test.givenClient.Users)
+		}
+
+		for k, v := range test.wantDummyUsers {
+			u := test.givenClient.Users[k]
+			if v.Username != u.Username || v.Password != u.Password || len(v.ACL) != len(u.ACL) {
+				t.Errorf("expected dummy user %v; \ngot: %v", *v, *u)
+			}
+		}
+
+	}
 }

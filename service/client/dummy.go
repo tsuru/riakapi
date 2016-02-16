@@ -127,7 +127,20 @@ func (c *Dummy) DeleteUser(username string) error {
 }
 
 func (c *Dummy) RevokeUserAccess(username, bucketName string) error {
-	return errors.New("Not implemented")
+	c.usersMutex.Lock()
+	defer c.usersMutex.Unlock()
+	user, ok := c.Users[username]
+	if !ok {
+		return errors.New("Not valid username")
+	}
+	for i, v := range user.ACL {
+		if v == bucketName {
+			// remove ACL
+			user.ACL = append(user.ACL[:i], user.ACL[i+1:]...)
+			return nil
+		}
+	}
+	return nil
 }
 
 func (c *Dummy) IsAlive(bucketName string) (alive bool, err error) {

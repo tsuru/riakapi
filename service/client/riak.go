@@ -20,6 +20,7 @@ const (
 
 	createUserCmd = `sudo riak-admin security add-user %s password="%s"`
 	grantUserCmd  = `sudo riak-admin security grant riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s to %s`
+	revokeUserCmd = `sudo riak-admin security revoke riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s from %s`
 )
 
 // This will hold the added instances on tsuru
@@ -187,13 +188,14 @@ func (c *Riak) EnsureUserPresent(word string) (user, pass string, err error) {
 func (c *Riak) GrantUserAccess(username, bucketName string) error {
 	bucketType := c.GetBucketType(bucketName)
 
-	// Create the user on raik
+	// Grant access on riak
 	cmd := fmt.Sprintf(grantUserCmd, bucketType, bucketName, username)
 	session, _ := c.SSHClient.NewSession()
 
 	err := session.Run(cmd)
 	session.Close()
 	if err != nil {
+		logrus.Errorf("Error granting user on bucket: %v", err)
 		return fmt.Errorf("Error granting user on bucket: %v", err)
 	}
 
@@ -209,8 +211,25 @@ func (c *Riak) DeleteBucket(bucketName, bucketType string) error {
 func (c *Riak) DeleteUser(username string) error {
 	return errors.New("Not implemented")
 }
+
+// RevokeUserAccess revokes access to user on a bucket
 func (c *Riak) RevokeUserAccess(username, bucketName string) error {
-	return errors.New("Not implemented")
+	bucketType := c.GetBucketType(bucketName)
+
+	// Revoke access on riak
+	cmd := fmt.Sprintf(revokeUserCmd, bucketType, bucketName, username)
+	session, _ := c.SSHClient.NewSession()
+
+	err := session.Run(cmd)
+	session.Close()
+	if err != nil {
+		logrus.Errorf("Error revoking user on bucket: %v", err)
+		return fmt.Errorf("Error revoking user on bucket: %v", err)
+	}
+
+	logrus.Infof("User '%s' revoked on %s.%s", username, bucketType, bucketName)
+
+	return nil
 }
 
 // GetBucketType returns the bucket type based on the bucket name
