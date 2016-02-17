@@ -8,7 +8,7 @@ DC_BIN=docker-compose
 DOCKER_COMPOSE_CMD_DEV=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.dev.yml
 
 
-TEST_PACKAGES=./config
+TEST_PACKAGES=./config ./service
 
 default:build
 

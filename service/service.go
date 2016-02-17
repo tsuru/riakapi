@@ -36,12 +36,13 @@ func (s *RiakService) Prefix() string {
 	return "/"
 }
 
-// Middleware wraps all the requests around this middlewares
+// Middleware wraps all the requests around thesse middlewares
 func (s *RiakService) Middleware(h http.Handler) http.Handler {
+	h = BasicAuthHandler(h, s.Cfg.RiakAPIUsername, s.Cfg.RiakAPIPassword)
 	return h
 }
 
-// JSONMiddleware wraps all the requests around this middlewares
+// JSONMiddleware wraps all the requests around these middlewares
 func (s *RiakService) JSONMiddleware(j server.JSONEndpoint) server.JSONEndpoint {
 	return j
 }

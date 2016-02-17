@@ -9,6 +9,7 @@ import (
 type ServiceConfig struct {
 	*Riak
 	*SSH
+	*RiakAPI
 
 	*config.Server
 }
@@ -16,9 +17,10 @@ type ServiceConfig struct {
 // NewServiceConfig creates a service config instance
 func NewServiceConfig() *ServiceConfig {
 	cfg := &ServiceConfig{
-		Server: &config.Server{},
-		Riak:   &Riak{},
-		SSH:    &SSH{},
+		Server:  &config.Server{},
+		Riak:    &Riak{},
+		SSH:     &SSH{},
+		RiakAPI: &RiakAPI{},
 	}
 
 	cfg.LoadConfiguration()
@@ -32,5 +34,6 @@ func (s *ServiceConfig) LoadConfiguration() {
 	config.LoadEnvConfig(s.Server)
 	s.Riak.LoadRiakConfigFromEnv()
 	s.SSH.LoadSSHConfigFromEnv(s.Riak)
+	s.RiakAPI.LoadRiakAPIConfigFromEnv(s.Riak)
 	logrus.Info("Service configuration loaded")
 }

@@ -14,7 +14,12 @@ import (
 	"gitlab.qdqmedia.com/shared-projects/riakapi/service/client"
 )
 
-var serviceTestCfg = &config.ServiceConfig{Riak: &config.Riak{}, Server: &gizmoConfig.Server{}}
+var serviceTestCfg = &config.ServiceConfig{
+	Riak:    &config.Riak{},
+	SSH:     &config.SSH{},
+	RiakAPI: &config.RiakAPI{},
+	Server:  &gizmoConfig.Server{},
+}
 
 //func setUp() {
 //
@@ -596,5 +601,4 @@ func TestInstanceRemoval(t *testing.T) {
 			t.Errorf("Expected body: %s ; got: %s", test.wantBody, got)
 		}
 	}
-
 }
