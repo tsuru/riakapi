@@ -21,9 +21,11 @@ const (
 	createBucketTypeCmd       = `sudo riak-admin bucket-type create %s '{"props":{"datatype":"%s", "allow_mult": true}}'`
 	activateBucketTypeCmd     = `sudo riak-admin bucket-type activate %s`
 
-	createUserCmd = `sudo riak-admin security add-user %s password="%s"`
-	grantUserCmd  = `sudo riak-admin security grant riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s to %s`
-	revokeUserCmd = `sudo riak-admin security revoke riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s from %s`
+	createUserCmd   = `sudo riak-admin security add-user %s password="%s"`
+	grantUserCmd    = `sudo riak-admin security grant riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s to %s`
+	grantSourceCmd  = `sudo riak-admin security add-source %s 0.0.0.0/0 password`
+	revokeUserCmd   = `sudo riak-admin security revoke riak_kv.get,riak_kv.put,riak_kv.delete,riak_kv.index,riak_kv.list_keys,riak_kv.list_buckets on %s %s from %s`
+	revokeSourceCmd = `sudo riak-admin security del-source %s 0.0.0.0/0`
 )
 
 // This will hold the added instances on tsuru
@@ -240,10 +242,22 @@ func (c *Riak) GrantUserAccess(username, bucketName string) error {
 	bucketType := c.GetBucketType(bucketName)
 
 	// Grant access on riak
+	// Set permissions
 	cmd := fmt.Sprintf(grantUserCmd, bucketType, bucketName, username)
 	session, _ := c.SSHClient.NewSession()
 
 	err := session.Run(cmd)
+	session.Close()
+	if err != nil {
+		logrus.Errorf("Error granting user on bucket: %v", err)
+		return fmt.Errorf("Error granting user on bucket: %v", err)
+	}
+
+	// Grant access from source
+	cmd = fmt.Sprintf(grantSourceCmd, username)
+	session, _ = c.SSHClient.NewSession()
+
+	err = session.Run(cmd)
 	session.Close()
 	if err != nil {
 		logrus.Errorf("Error granting user on bucket: %v", err)
@@ -277,10 +291,22 @@ func (c *Riak) RevokeUserAccess(username, bucketName string) error {
 	bucketType := c.GetBucketType(bucketName)
 
 	// Revoke access on riak
+	// Delete permissions
 	cmd := fmt.Sprintf(revokeUserCmd, bucketType, bucketName, username)
 	session, _ := c.SSHClient.NewSession()
 
 	err := session.Run(cmd)
+	session.Close()
+	if err != nil {
+		logrus.Errorf("Error revoking user on bucket: %v", err)
+		return fmt.Errorf("Error revoking user on bucket: %v", err)
+	}
+
+	// Revoke access from source
+	cmd = fmt.Sprintf(revokeSourceCmd, username)
+	session, _ = c.SSHClient.NewSession()
+
+	err = session.Run(cmd)
 	session.Close()
 	if err != nil {
 		logrus.Errorf("Error revoking user on bucket: %v", err)
