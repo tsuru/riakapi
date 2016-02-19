@@ -1,6 +1,17 @@
+riak:
+  container_name: riakapi_riak
+
+
 app:
   container_name: riakapi-dev
   ports:
     - "8888:8888"
+  links:
+    - riak:riak
+  environment:
+      RIAK_SSH_USER: riakapi
+      RIAK_SSH_PASS: riakapi
+      RIAK_RIAK_USER: riakapi
+      RIAK_RIAK_PASS: riakapi
 
   hostname: riakapi-dev

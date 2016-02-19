@@ -9,12 +9,18 @@ import (
 
 // SSH holds SSH configuration
 type SSH struct {
-	SSHHost       string `envconfig:"SSH_HOST"`
-	SSHPort       int    `envconfig:"SSH_PORT"`
-	SSHUser       string `envconfig:"SSH_USER"`
-	SSHPassword   string `envconfig:"SSH_PASSWORD"`
+	// SSHHost is the host where ssh will connect to execute riak-admin commands
+	SSHHost string `envconfig:"SSH_HOST"`
+	// SSHPort is the port where ssh will connect to execute riak-admin commands
+	SSHPort int `envconfig:"SSH_PORT"`
+	// SSHUser is the user which ssh will connect to execute riak-admin commands (needs passwordless sudo for riak-admin)
+	SSHUser string `envconfig:"SSH_USER"`
+	// SSHPassword is the password which ssh will connect to execute riak-admin commands
+	SSHPassword string `envconfig:"SSH_PASSWORD"`
+	// SSHPrivateKey is the private key which ssh will connect to execute riak-admin commands
 	SSHPrivateKey string `envconfig:"SSH_PRIVATE_KEY"`
 
+	// SSHAuthMethods internal variable with the ssh auth methods prepared based on the settings provided
 	SSHAuthMethods []ssh.AuthMethod
 }
 

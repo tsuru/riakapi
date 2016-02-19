@@ -1,8 +1,11 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/Sirupsen/logrus"
 	riak "github.com/basho/riak-go-client"
@@ -35,18 +38,66 @@ type Riak struct {
 	SSHClient *ssh.Client
 
 	// RiakClient riak lowlevel client (for riak bucket operations)
-	RiakClient *riak.Client
+	RiakClient *riak.Cluster
+}
+
+// newRiakAuth creates teh auth options needed by riak to create a TLS connection
+func newRiakAuth(username, password, cacertPath, serverName string, insecureTLS bool) *riak.AuthOptions {
+
+	tlsConfig := &tls.Config{
+		ServerName:         serverName,
+		InsecureSkipVerify: insecureTLS,
+	}
+
+	// Set CA certificate if neccessary
+	if !insecureTLS {
+		var pemData []byte
+		var err error
+		if pemData, err = ioutil.ReadFile(cacertPath); err != nil {
+			logrus.Fatalf("Error reading ca cert: %v", err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
+			logrus.Fatalf("Could not append PEM cert data")
+		}
+		tlsConfig.ClientCAs = caCertPool
+	}
+
+	logrus.Debug("Riak auth options created")
+
+	return &riak.AuthOptions{
+		User:      username,
+		Password:  password,
+		TlsConfig: tlsConfig,
+	}
 }
 
 // NewRiak creates a riak client and the ssh connection
 func NewRiak(cfg *config.ServiceConfig) *Riak {
+	nodeOptions := &riak.NodeOptions{
+		RemoteAddress: fmt.Sprintf("%s:%d", cfg.RiakHost, cfg.RiakPort),
+		AuthOptions:   newRiakAuth(cfg.RiakUser, cfg.RiakPass, cfg.RiakCaCert, cfg.RiakServerName, cfg.RiakInsecureTLS != 0),
+	}
+	var node *riak.Node
+
+	var err error
+	if node, err = riak.NewNode(nodeOptions); err != nil {
+		logrus.Fatalf("Error connecting to riak: %v", err)
+	}
+
+	nodes := []*riak.Node{node}
+	opts := &riak.ClusterOptions{
+		Nodes: nodes,
+	}
 
 	// Create riak client
-	rClient, err := riak.NewClient(&riak.NewClientOptions{
-		RemoteAddresses: []string{fmt.Sprintf("%s:%d", cfg.RiakHost, cfg.RiakPort)},
-	})
+	var cluster *riak.Cluster
+	if cluster, err = riak.NewCluster(opts); err != nil {
+		logrus.Fatalf("Error connecting to riak: %v", err)
+	}
 
-	if err != nil {
+	if err := cluster.Start(); err != nil {
 		logrus.Fatalf("Error connecting to riak: %v", err)
 	}
 
@@ -63,7 +114,7 @@ func NewRiak(cfg *config.ServiceConfig) *Riak {
 	}
 
 	return &Riak{
-		RiakClient: rClient,
+		RiakClient: cluster,
 		SSHClient:  sClient,
 	}
 }

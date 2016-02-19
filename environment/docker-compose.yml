@@ -6,3 +6,11 @@ app:
     - ./../:/go/src/gitlab.qdqmedia.com/shared-projects/riakapi
 
   command: "/bin/true"
+
+riak:
+  build: images/riak
+  dockerfile: Dockerfile
+  ports:
+    - "8087"
+    - "8098"
+    - "22"

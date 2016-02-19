@@ -8,8 +8,20 @@ import (
 
 // Riak holds riak configuration
 type Riak struct {
+	// RiakHost is the host where app will connect to execute riak actions
 	RiakHost string `envconfig:"RIAK_HOST"`
-	RiakPort int    `envconfig:"RIAK_PORT"`
+	// RiakPort is the port where app will connect to execute riak actions
+	RiakPort int `envconfig:"RIAK_PORT"`
+	// RiakUser is the user which app will connect to execute riak actions
+	RiakUser string `envconfig:"RIAK_USER"`
+	// RiakPass is the password which app will connect to execute riak actions
+	RiakPass string `envconfig:"RIAK_PASSWORD"`
+	// RiakCaCert is the CA certificate used to authenticate the TLS connection with riak server
+	RiakCaCert string `envconfig:"RIAK_CA_PATH"`
+	// RiakInsecureTLS makes an insecure TLS connection (we should be sure of the riak server and no MitM attacks are possible)
+	RiakInsecureTLS int `envconfig:"RIAK_INSECURE_TLS"`
+	// RiakServerName is the riaks server name for the certificates authentication
+	RiakServerName string `envconfig:"RIAK_SERVER_NAME"`
 }
 
 func (r *Riak) String() string {

@@ -1,0 +1,18 @@
+#!/bin/bash
+ADDR=$(/sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}')
+chown riak:riak /var/lib/riak /var/log/riak
+chmod 755 /var/lib/riak /var/log/riak
+ulimit -n 4096
+sed -i "s/riak@127.0.0.1/riak@${ADDR}/" /etc/riak/riak.conf
+sed -i "s/127.0.0.1:8098/${ADDR}:8098/g" /etc/riak/riak.conf
+sed -i "s/127.0.0.1:8087/${ADDR}:8087/g" /etc/riak/riak.conf
+
+sed -i "s:## ssl.certfile = \$(platform_etc_dir)/cert.pem:ssl.certfile = /etc/riak/riak-test-cert.pem:g" /etc/riak/riak.conf
+sed -i "s:## ssl.keyfile = \$(platform_etc_dir)/key.pem:ssl.keyfile = /etc/riak/riak-test-key.pem:g" /etc/riak/riak.conf
+sed -i "s:## ssl.cacertfile = \$(platform_etc_dir)/cacertfile.pem:ssl.cacertfile = /etc/riak/cacert.pem:g" /etc/riak/riak.conf
+chown riak:riak /etc/riak/*
+
+
+/sbin/setuser riak "$(ls -d /usr/lib/riak/erts*)/bin/run_erl" "/tmp/riak" "/var/log/riak" "/etc/riak"
+
+/etc/service/riak/riak.sh

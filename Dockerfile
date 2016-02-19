@@ -15,6 +15,11 @@ RUN go get github.com/axw/gocov/gocov
 RUN go get github.com/mailgun/godebug
 
 
+# Set environment variables
+ENV RIAK_USER riakapi
+ENV RIAK_PASSWORD riakapi
+ENV SSH_USER riakapi
+ENV SSH_PASSWORD riakapi
 ENV GO15VENDOREXPERIMENT=1
 
 
