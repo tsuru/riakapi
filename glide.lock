@@ -1,10 +1,10 @@
 hash: fd1f16d5ee1a2eed97e2e67f50b848eb80e363d2f6ffbdfafcd0bb1310a7a4b5
-updated: 2016-02-12T07:41:42.520119182Z
+updated: 2016-02-22T10:24:29.751390076Z
 imports:
 - name: github.com/basho/backoff
   version: 2ff7c4694083b5dbd71b21fd7cb7577477a74b31
 - name: github.com/basho/riak-go-client
-  version: 987b29fe0f2681aeb3228240fbbaa1b35e09e085
+  version: 9b292ced283a3c5ec4cd49efef196a98f8b21cab
   subpackages:
   - rpb/riak
   - rpb/riak_dt
@@ -53,6 +53,7 @@ imports:
   version: 1f22c0103821b9390939b6776727195525381532
   subpackages:
   - ssh
+  - curve25519
 - name: golang.org/x/net
   version: 8968c61983e8f51a91b8c0ef25bf739278c89634
   subpackages:
