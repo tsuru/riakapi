@@ -50,9 +50,9 @@ func (s *SSH) getAuthMethods() []ssh.AuthMethod {
 func (s *SSH) LoadSSHConfigFromEnv(riakCfg *Riak) {
 	config.LoadEnvConfig(s)
 	if s.SSHHost == "" {
-		// if no host then use the same as riak host, if not then localhost
-		if riakCfg.RiakHost != "" {
-			s.SSHHost = riakCfg.RiakHost
+		// if no host then use the first riak host, if not then localhost
+		if len(riakCfg.RiakClusterHosts) > 0 {
+			s.SSHHost = riakCfg.RiakClusterHosts[0]
 		} else {
 			s.SSHHost = "127.0.0.1"
 		}

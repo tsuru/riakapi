@@ -3,6 +3,7 @@ package service
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -89,13 +90,18 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 
 	// The required env vars
 	envVars := map[string]string{
-		"RIAK_HOST":        s.Cfg.RiakHost,
-		"RIAK_HTTP_PORT":   strconv.Itoa(8098),
-		"RIAK_PB_PORT":     strconv.Itoa(8087),
+		"RIAK_HOSTS":       strings.Join(s.Cfg.RiakClusterHosts, ";"),
+		"RIAK_HTTP_PORT":   strconv.Itoa(s.Cfg.RiakHTTPPort),
+		"RIAK_PB_PORT":     strconv.Itoa(s.Cfg.RiakPBPort),
 		"RIAK_USER":        user,
 		"RIAK_PASSWORD":    pass,
 		"RIAK_BUCKET_TYPE": s.Client.GetBucketType(bucketName),
 		"RIAK_BUCKET":      bucketName,
+	}
+
+	// If there is a certificate then set
+	if s.Cfg.RiakCaCert != "" {
+		envVars["RIAK_CA_CERT"] = s.Cfg.RiakCaCert
 	}
 
 	return http.StatusCreated, envVars, nil

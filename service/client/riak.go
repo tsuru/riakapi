@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/Sirupsen/logrus"
 	riak "github.com/basho/riak-go-client"
@@ -44,7 +43,7 @@ type Riak struct {
 }
 
 // newRiakAuth creates teh auth options needed by riak to create a TLS connection
-func newRiakAuth(username, password, cacertPath, serverName string, insecureTLS bool) *riak.AuthOptions {
+func newRiakAuth(username, password, caCert, serverName string, insecureTLS bool) *riak.AuthOptions {
 
 	tlsConfig := &tls.Config{
 		ServerName:         serverName,
@@ -53,14 +52,8 @@ func newRiakAuth(username, password, cacertPath, serverName string, insecureTLS 
 
 	// Set CA certificate if neccessary
 	if !insecureTLS {
-		var pemData []byte
-		var err error
-		if pemData, err = ioutil.ReadFile(cacertPath); err != nil {
-			logrus.Fatalf("Error reading ca cert: %v", err)
-		}
-
 		caCertPool := x509.NewCertPool()
-		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
+		if ok := caCertPool.AppendCertsFromPEM([]byte(caCert)); !ok {
 			logrus.Fatalf("Could not append PEM cert data")
 		}
 		tlsConfig.ClientCAs = caCertPool
@@ -77,18 +70,27 @@ func newRiakAuth(username, password, cacertPath, serverName string, insecureTLS 
 
 // NewRiak creates a riak client and the ssh connection
 func NewRiak(cfg *config.ServiceConfig) *Riak {
-	nodeOptions := &riak.NodeOptions{
-		RemoteAddress: fmt.Sprintf("%s:%d", cfg.RiakHost, cfg.RiakPort),
-		AuthOptions:   newRiakAuth(cfg.RiakUser, cfg.RiakPass, cfg.RiakCaCert, cfg.RiakServerName, cfg.RiakInsecureTLS != 0),
-	}
-	var node *riak.Node
 
 	var err error
-	if node, err = riak.NewNode(nodeOptions); err != nil {
-		logrus.Fatalf("Error connecting to riak: %v", err)
+	auth := newRiakAuth(cfg.RiakUser, cfg.RiakPass, cfg.RiakCaCert, cfg.RiakServerName, cfg.RiakInsecureTLS != 0)
+	nodes := []*riak.Node{}
+
+	// create the cluster nodes
+	for _, n := range cfg.RiakClusterHosts {
+		// Create our node
+		nodeOptions := &riak.NodeOptions{
+			RemoteAddress: fmt.Sprintf("%s:%d", n, cfg.RiakPBPort),
+			AuthOptions:   auth,
+		}
+
+		var node *riak.Node
+		if node, err = riak.NewNode(nodeOptions); err != nil {
+			logrus.Fatalf("Error connecting to riak: %v", err)
+		}
+
+		nodes = append(nodes, node)
 	}
 
-	nodes := []*riak.Node{node}
 	opts := &riak.ClusterOptions{
 		Nodes: nodes,
 	}
