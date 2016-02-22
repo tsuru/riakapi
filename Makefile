@@ -8,7 +8,7 @@ DC_BIN=docker-compose
 DOCKER_COMPOSE_CMD_DEV=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.dev.yml
 
 
-TEST_PACKAGES=./config ./service
+TEST_PACKAGES=./service
 
 default:build
 
@@ -72,3 +72,10 @@ up: docker_build
 
 authors:
 	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
+
+ci_test:
+	go test ${TEST_PACKAGES} -v
+
+ci_bootstrap:
+	go get github.com/Masterminds/glide
+	glide install
