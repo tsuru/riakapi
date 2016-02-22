@@ -1,0 +1,14 @@
+riak:
+  container_name: riakapi_riak
+
+app:
+  container_name: riakapi-ci
+  links:
+    - riak:riak
+  environment:
+      RIAK_SSH_USER: riakapi
+      RIAK_SSH_PASS: riakapi
+      RIAK_RIAK_USER: riakapi
+      RIAK_RIAK_PASS: riakapi
+
+  hostname: riakapi-ci

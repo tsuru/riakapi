@@ -1,0 +1,13 @@
+sudo: required
+
+services:
+    - docker
+
+script:
+  - make ci_test
+  - make ci_clean
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always

@@ -6,6 +6,7 @@ PROJECT_NAME=riakapi
 # Do not touch
 DC_BIN=docker-compose
 DOCKER_COMPOSE_CMD_DEV=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.dev.yml
+DOCKER_COMPOSE_CMD_CI=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.ci.yml
 
 
 TEST_PACKAGES=./service
@@ -70,12 +71,13 @@ up: docker_build
 	cd environment/dev && \
 		${DOCKER_COMPOSE_CMD_DEV} run --rm --service-ports app /bin/bash -ci "./environment/dev/build.sh;/bin/bash";
 
-authors:
-	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
+# Run ci tests (for travis mainly)
+ci_test: docker_build
+	cd environment/ci && \
+		${DOCKER_COMPOSE_CMD_CI} run --rm --service-ports app /bin/bash -ci "./environment/ci/build.sh;go test ${TEST_PACKAGES} -v"
 
-ci_test:
-	go test ${TEST_PACKAGES} -v
-
-ci_bootstrap:
-	go get github.com/Masterminds/glide
-	glide install
+# Clean ci environment (for travis mainly)
+ci_clean:
+	cd environment/ci && \
+	${DOCKER_COMPOSE_CMD_CI} stop; \
+	${DOCKER_COMPOSE_CMD_CI} rm -f
