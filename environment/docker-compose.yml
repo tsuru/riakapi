@@ -3,7 +3,7 @@ app:
   dockerfile: Dockerfile
 
   volumes:
-    - ./../:/go/src/gitlab.qdqmedia.com/shared-projects/riakapi
+    - ./../:/go/src/github.com/tsuru/riakapi
 
   command: "/bin/true"
 

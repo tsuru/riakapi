@@ -10,8 +10,8 @@ import (
 	gizmoConfig "github.com/NYTimes/gizmo/config"
 	"github.com/NYTimes/gizmo/server"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
-	"gitlab.qdqmedia.com/shared-projects/riakapi/service/client"
+	"github.com/tsuru/riakapi/config"
+	"github.com/tsuru/riakapi/service/client"
 )
 
 var serviceTestCfg = &config.ServiceConfig{

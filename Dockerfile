@@ -23,4 +23,4 @@ ENV SSH_PASSWORD riakapi
 ENV GO15VENDOREXPERIMENT=1
 
 
-WORKDIR /go/src/gitlab.qdqmedia.com/shared-projects/riakapi
+WORKDIR /go/src/github.com/tsuru/riakapi

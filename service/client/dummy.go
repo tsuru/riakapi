@@ -6,7 +6,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
+	"github.com/tsuru/riakapi/utils"
 )
 
 type UserProps struct {

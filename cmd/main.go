@@ -4,9 +4,9 @@ import (
 	"github.com/NYTimes/gizmo/server"
 	"github.com/Sirupsen/logrus"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
-	"gitlab.qdqmedia.com/shared-projects/riakapi/service"
-	"gitlab.qdqmedia.com/shared-projects/riakapi/service/client"
+	"github.com/tsuru/riakapi/config"
+	"github.com/tsuru/riakapi/service"
+	"github.com/tsuru/riakapi/service/client"
 )
 
 func main() {

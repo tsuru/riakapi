@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
-	"gitlab.qdqmedia.com/shared-projects/riakapi/service/client"
+	"github.com/tsuru/riakapi/config"
+	"github.com/tsuru/riakapi/service/client"
 )
 
 var (

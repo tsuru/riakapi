@@ -8,7 +8,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
+	"github.com/tsuru/riakapi/utils"
 )
 
 const (

@@ -10,8 +10,8 @@ import (
 	riak "github.com/basho/riak-go-client"
 	"golang.org/x/crypto/ssh"
 
-	"gitlab.qdqmedia.com/shared-projects/riakapi/config"
-	"gitlab.qdqmedia.com/shared-projects/riakapi/utils"
+	"github.com/tsuru/riakapi/config"
+	"github.com/tsuru/riakapi/utils"
 )
 
 // Riak admin cmd fmts
