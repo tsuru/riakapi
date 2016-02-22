@@ -1,0 +1,5 @@
+id: riakapi
+username: tsuru
+password: tsuru
+endpoint:
+  production: riakapi.example.com
