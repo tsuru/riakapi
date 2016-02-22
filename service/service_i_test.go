@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -86,7 +85,4 @@ func TestIntegrationInstanceCreationOk(t *testing.T) {
 	if serviceTestClient.GetBucketType("test-bucket") != "tsuru-counter" {
 		t.Error("Bucket not created correctly")
 	}
-
-	// Check bucket type present
-	cmd := fmt.Sprintf(checkBucketTypePresentCmd, bucketType)
 }

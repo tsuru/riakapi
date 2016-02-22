@@ -211,13 +211,13 @@ func TestInstanceBindingOK(t *testing.T) {
 
 			wantCode: http.StatusCreated,
 			wantBody: map[string]string{
-				"RIAK_BUCKET":      "testinstance",
-				"RIAK_BUCKET_TYPE": "testbuckettype",
-				"RIAK_HOST":        "",
-				"RIAK_HTTP_PORT":   "8098",
-				"RIAK_PASSWORD":    "myapp.tsuru.io",
-				"RIAK_PB_PORT":     "8087",
+				"RIAK_HOSTS":       "",
+				"RIAK_HTTP_PORT":   "0",
+				"RIAK_PB_PORT":     "0",
 				"RIAK_USER":        "tsuru_myapp.tsuru.io",
+				"RIAK_PASSWORD":    "myapp.tsuru.io",
+				"RIAK_BUCKET_TYPE": "testbuckettype",
+				"RIAK_BUCKET":      "testinstance",
 			},
 			wantDummyUsers: map[string]*client.UserProps{
 				"tsuru_myapp.tsuru.io": &client.UserProps{
@@ -243,13 +243,13 @@ func TestInstanceBindingOK(t *testing.T) {
 
 			wantCode: http.StatusCreated,
 			wantBody: map[string]string{
-				"RIAK_BUCKET":      "testinstance",
-				"RIAK_BUCKET_TYPE": "testbuckettype",
-				"RIAK_HOST":        "",
-				"RIAK_HTTP_PORT":   "8098",
-				"RIAK_PASSWORD":    "myapp.tsuru.io",
-				"RIAK_PB_PORT":     "8087",
+				"RIAK_HOSTS":       "",
+				"RIAK_HTTP_PORT":   "0",
+				"RIAK_PB_PORT":     "0",
 				"RIAK_USER":        "tsuru_myapp.tsuru.io",
+				"RIAK_PASSWORD":    "myapp.tsuru.io",
+				"RIAK_BUCKET_TYPE": "testbuckettype",
+				"RIAK_BUCKET":      "testinstance",
 			},
 			wantDummyUsers: map[string]*client.UserProps{
 				"tsuru_myapp.tsuru.io": &client.UserProps{
