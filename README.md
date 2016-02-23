@@ -3,12 +3,13 @@ Riak API service for tsuru
 
 [![Build Status](https://travis-ci.org/tsuru/riakapi.svg?branch=master)](https://travis-ci.org/tsuru/riakapi)
 
-Riak Tsuru service will allow you to use riak buckets as a service on your Tsuru 
+[![Go Report Card](https://goreportcard.com/badge/github.com/tsuru/riakapi)](https://goreportcard.com/report/github.com/tsuru/riakapi)
+
+Riak Tsuru service will allow you to use riak buckets as a service on your Tsuru
 applications.
 
 
 ## Preparation
-
 
 Before setting up the service there are a few things required on the Riak machines.
 
