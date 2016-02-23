@@ -104,6 +104,7 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 		envVars["RIAK_CA_CERT"] = s.Cfg.RiakCaCert
 	}
 
+	logrus.Infof("Instace '%s' binded to '%s'", bucketName, userWord)
 	return http.StatusCreated, envVars, nil
 }
 
@@ -130,6 +131,7 @@ func (s *RiakService) UnbindInstance(r *http.Request) (int, interface{}, error) 
 		return http.StatusInternalServerError, UserRevokingFailMsg, nil
 	}
 
+	logrus.Infof("Instace '%s' unbinded from '%s'", bucketName, userWord)
 	return http.StatusOK, "", nil
 }
 
@@ -153,13 +155,14 @@ func (s *RiakService) RemoveInstance(r *http.Request) (int, interface{}, error) 
 	return http.StatusOK, "", nil
 }
 
-// CheckInstanceStatus Checks the status of an instance on tsuru. TRanslated to riak,
-// Checks teh status of the bucket
+// CheckInstanceStatus Checks the status of an instance on tsuru. Translated to riak,
+// Checks the status of the bucket
 func (s *RiakService) CheckInstanceStatus(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Executing 'CheckInstanceStatus' endpoint")
 
 	bucketName, _ := mux.Vars(r)["name"]
 	ok, err := s.Client.IsAlive(bucketName)
+	logrus.Infof("Instace '%s' status ok: %t", bucketName, ok)
 	if ok {
 		return http.StatusNoContent, nil, nil
 	}

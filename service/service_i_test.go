@@ -299,3 +299,54 @@ func TestIntegrationInstanceUnbindingOk(t *testing.T) {
 		t.Errorf("Expected error: %s\n; got: %s", checkError, err.Error())
 	}
 }
+
+func TestIntegrationInstanceStatusOk(t *testing.T) {
+	// Prepare
+	serviceTestClient := client.NewRiak(serviceITestCfg)
+	srvr := server.NewSimpleServer(nil)
+	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	instance := fmt.Sprintf("test-instance-%d", rnd.Int())
+	plan := "tsuru-counter"
+	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
+
+	// Create a new instance ok
+	r, _ := http.NewRequest("POST", uri, nil)
+	w := httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error("Coudn't prepare the instance for the test")
+	}
+
+	// Check instance status
+	uri = fmt.Sprintf("/resources/%s/status", instance)
+	wantCode := http.StatusNoContent
+
+	r, _ = http.NewRequest("GET", uri, nil)
+	w = httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != wantCode {
+		t.Errorf("Error checking status; expect: %d\ngot: %d", wantCode, w.Code)
+	}
+}
+func TestIntegrationInstanceStatusWrong(t *testing.T) {
+	serviceTestClient := client.NewRiak(serviceITestCfg)
+	srvr := server.NewSimpleServer(nil)
+	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	instance := fmt.Sprintf("test-instance-%d", rnd.Int())
+	uri := fmt.Sprintf("/resources/wrong_%s/status", instance)
+	wantCode := http.StatusInternalServerError
+
+	// Check not existent instance status
+	r, _ := http.NewRequest("GET", uri, nil)
+	w := httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != wantCode {
+		t.Errorf("Error checking status; expect: %d\ngot: %d", wantCode, w.Code)
+	}
+}
