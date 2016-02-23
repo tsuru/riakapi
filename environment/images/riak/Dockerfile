@@ -13,16 +13,16 @@ RUN \
     mkdir -p /etc/service/riak
 
 COPY run /etc/service/riak/
-COPY riak.sh /etc/service/riak/
+COPY riak.sh /etc/service/riak/riak.sh
 
 WORKDIR /root
 
 EXPOSE 8098 8087
 
 # Set TLS certs
-COPY certs/cacert.pem /etc/riak
-COPY certs/riak-test-cert.pem /etc/riak
-COPY certs/riak-test-key.pem /etc/riak
+COPY certs/cacert.pem /etc/riak/cacert.pem
+COPY certs/riak-test-cert.pem /etc/riak/riak-test-cert.pem
+COPY certs/riak-test-key.pem /etc/riak/riak-test-key.pem
 
 # Enable ssh
 RUN rm -f /etc/service/sshd/down

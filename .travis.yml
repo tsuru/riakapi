@@ -15,6 +15,8 @@ before_install:
 
 script:
   - make ci_test
+
+after_script:
   - make ci_clean
 
 notifications:
