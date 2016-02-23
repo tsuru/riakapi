@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/NYTimes/gizmo/server"
 	riak "github.com/basho/riak-go-client"
@@ -36,6 +37,7 @@ var (
 	}
 )
 
+// Setup & teardown
 func createIntegrationConfig() *config.ServiceConfig {
 	// Set env vars to load configuration
 	for k, v := range envVars {
@@ -51,6 +53,63 @@ func TestMain(m *testing.M) {
 
 	// Run tests
 	os.Exit(m.Run())
+}
+
+// Helper functions
+func newRiakCluster(opts map[string]string, t *testing.T) *riak.Cluster {
+	// Create riak connection with the new user
+	u := opts["RIAK_USER"]
+	p := opts["RIAK_PASSWORD"]
+	tc := &tls.Config{InsecureSkipVerify: true}
+	a := &riak.AuthOptions{User: u, Password: p, TlsConfig: tc}
+	h := strings.Split(opts["RIAK_HOSTS"], ":")[0]
+	no := &riak.NodeOptions{
+		RemoteAddress: fmt.Sprintf("%s:%s", h, opts["RIAK_PB_PORT"]),
+		AuthOptions:   a,
+	}
+	var n *riak.Node
+	var err error
+	if n, err = riak.NewNode(no); err != nil {
+		t.Errorf("Error creating node: %v", err)
+	}
+	co := &riak.ClusterOptions{Nodes: []*riak.Node{n}}
+	var cluster *riak.Cluster
+	if cluster, err = riak.NewCluster(co); err != nil {
+		t.Errorf("Error connecting to riak: %v", err)
+	}
+	if err := cluster.Start(); err != nil {
+		t.Errorf("Error connecting to riak: %v", err)
+	}
+
+	return cluster
+}
+
+func incCounter(c *riak.Cluster, bucketType, bucket, key string, value int) error {
+	cmd, _ := riak.NewUpdateCounterCommandBuilder().
+		WithBucketType(bucketType).
+		WithBucket(bucket).
+		WithKey(key).
+		WithIncrement(int64(value)).
+		Build()
+	if err := c.Execute(cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
+func getCounter(c *riak.Cluster, bucketType, bucket, key string) (int64, error) {
+	cmd, _ := riak.NewFetchCounterCommandBuilder().
+		WithBucketType(bucketType).
+		WithBucket(bucket).
+		WithKey(key).
+		Build()
+	if err := c.Execute(cmd); err != nil {
+		return 0, err
+	}
+
+	fcc := cmd.(*riak.FetchCounterCommand)
+
+	return fcc.Response.CounterValue, nil
 }
 
 // TestIntegrationInstanceCreationOk Creates a new bucket on a bucket type. we
@@ -101,7 +160,8 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 	instance := "test-instance"
 	plan := "tsuru-counter"
 	appHost := "myapp.test.org"
-	testKey := "MyTestAwesomeKey1234567890"
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	testKey := fmt.Sprintf("MyTestAwesomeKey_%d", rnd.Int()) // Random key always to avoid collisions between runs
 	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
 
 	// Create a new instance
@@ -148,58 +208,26 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 	if !reflect.DeepEqual(got, wantBody) {
 		t.Errorf("expected response body of\n%#v;\ngot\n%#v", wantBody, got)
 	}
+	got["RIAK_PASSWORD"] = pass
 
 	// Check getting and retrieving a key on the recent created bucket with the
 	// username and password
+	cluster := newRiakCluster(got, t)
 
-	// Create riak connection with the new user
-	u := got["RIAK_USER"]
-	tc := &tls.Config{InsecureSkipVerify: true}
-	a := &riak.AuthOptions{User: u, Password: pass, TlsConfig: tc}
-	h := strings.Split(got["RIAK_HOSTS"], ":")[0]
-	no := &riak.NodeOptions{
-		RemoteAddress: fmt.Sprintf("%s:%s", h, got["RIAK_PB_PORT"]),
-		AuthOptions:   a,
-	}
-	var n *riak.Node
-	if n, err = riak.NewNode(no); err != nil {
-		t.Errorf("Error creating node: %v", err)
-	}
-	co := &riak.ClusterOptions{Nodes: []*riak.Node{n}}
-	var cluster *riak.Cluster
-	if cluster, err = riak.NewCluster(co); err != nil {
-		t.Errorf("Error connecting to riak: %v", err)
-	}
-	if err := cluster.Start(); err != nil {
-		t.Errorf("Error connecting to riak: %v", err)
-	}
-
-	// set a key on the bucket
-	value := rand.Intn(100)
-	cmd, _ := riak.NewUpdateCounterCommandBuilder().
-		WithBucketType(got["RIAK_BUCKET_TYPE"]).
-		WithBucket(got["RIAK_BUCKET"]).
-		WithKey(testKey).
-		WithIncrement(int64(value)).
-		Build()
-	if err = cluster.Execute(cmd); err != nil {
+	// Set a key on the bucket
+	value := rnd.Intn(100)
+	if err = incCounter(cluster, got["RIAK_BUCKET_TYPE"], got["RIAK_BUCKET"], testKey, value); err != nil {
 		t.Errorf("Error setting test key/value: %v", err)
 	}
 
 	// Retrieve
-	cmd, _ = riak.NewFetchCounterCommandBuilder().
-		WithBucketType(got["RIAK_BUCKET_TYPE"]).
-		WithBucket(got["RIAK_BUCKET"]).
-		WithKey(testKey).
-		Build()
-
-	if err = cluster.Execute(cmd); err != nil {
+	var res int64
+	if res, err = getCounter(cluster, got["RIAK_BUCKET_TYPE"], got["RIAK_BUCKET"], testKey); err != nil {
 		t.Errorf("Error fetching test key/value: %v", err)
 	}
 
-	fcc := cmd.(*riak.FetchCounterCommand)
-	if int64(value) != fcc.Response.CounterValue {
-		t.Errorf("Fetched counter error; expected: %d; got: %d", value, fcc.Response.CounterValue)
+	if int64(value) != res {
+		t.Errorf("Fetched counter error; expected: %d; got: %d", value, res)
 	}
 
 }
