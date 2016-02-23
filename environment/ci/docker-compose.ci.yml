@@ -3,6 +3,7 @@ riak:
 
 app:
   container_name: riakapi-ci
+  user: root
   links:
     - riak:riak
   environment:
