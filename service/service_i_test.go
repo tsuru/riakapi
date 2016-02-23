@@ -149,7 +149,7 @@ func TestIntegrationInstanceCreationOk(t *testing.T) {
 	}
 
 	// Check correct bucket type
-	if serviceTestClient.GetBucketType("test-bucket") != "tsuru-counter" {
+	if serviceTestClient.GetBucketType(instance) != plan {
 		t.Error("Bucket not created correctly")
 	}
 }
