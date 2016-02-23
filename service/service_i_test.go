@@ -121,15 +121,15 @@ func TestIntegrationInstanceCreationOk(t *testing.T) {
 	wantBody := ""
 	wantCode := http.StatusOK
 
-	// Create our dummy server (with config & client)
 	srvr := server.NewSimpleServer(nil)
 	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
 
-	// Create the request
+	// Create the instance
 	r, _ := http.NewRequest("POST", uri, nil)
 	w := httptest.NewRecorder()
 	srvr.ServeHTTP(w, r)
 
+	// Check response
 	if w.Code != wantCode {
 		t.Errorf("expected response code of %d; got %d", wantCode, w.Code)
 	}
@@ -140,7 +140,6 @@ func TestIntegrationInstanceCreationOk(t *testing.T) {
 		t.Error("unable to JSON decode response body: ", err)
 	}
 
-	// Check body
 	if got != wantBody {
 		t.Errorf("expected response body of\n%#v;\ngot\n%#v", wantBody, got)
 	}
@@ -189,6 +188,7 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 	w = httptest.NewRecorder()
 	srvr.ServeHTTP(w, r)
 
+	// Check response
 	if w.Code != wantCode {
 		t.Errorf("expected response code of %d; got %d", wantCode, w.Code)
 	}
@@ -229,5 +229,73 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 	if int64(value) != res {
 		t.Errorf("Fetched counter error; expected: %d; got: %d", value, res)
 	}
+}
 
+func TestIntegrationInstanceUnbindingOk(t *testing.T) {
+	// Prepare
+	serviceTestClient := client.NewRiak(serviceITestCfg)
+	srvr := server.NewSimpleServer(nil)
+	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
+	instance := "test-instance"
+	plan := "tsuru-counter"
+	appHost := "myapp.test.org"
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	testKey := fmt.Sprintf("MyTestAwesomeKey_%d", rnd.Int()) // Random key always to avoid collisions between runs
+	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
+
+	// Create a new instance
+	r, _ := http.NewRequest("POST", uri, nil)
+	w := httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error("Coudn't prepare the isntance for the test")
+	}
+
+	// Bind our fresh created instance
+	uri = fmt.Sprintf("/resources/%s/bind-app?app-host=%s", instance, appHost)
+	wantCode := http.StatusCreated
+
+	r, _ = http.NewRequest("POST", uri, nil)
+	w = httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != wantCode {
+		t.Errorf("expected response code of %d; got %d", wantCode, w.Code)
+	}
+
+	var got map[string]string
+	err := json.NewDecoder(w.Body).Decode(&got)
+
+	if err != nil {
+		t.Error("unable to JSON decode response body: ", err)
+	}
+	cluster := newRiakCluster(got, t)
+
+	// Set a key on the bucket (this should be allowed)
+	value := rnd.Intn(100)
+	if err = incCounter(cluster, got["RIAK_BUCKET_TYPE"], got["RIAK_BUCKET"], testKey, value); err != nil {
+		t.Errorf("Error setting test key/value: %v", err)
+	}
+	// unbind our instance
+	r, _ = http.NewRequest("DELETE", uri, nil)
+	w = httptest.NewRecorder()
+	srvr.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error("Coudn't prepare the isntance for the test")
+	}
+
+	// This shouldn't be allowed
+	// Set a key on the bucket
+	value = rnd.Intn(100)
+	if err = incCounter(cluster, got["RIAK_BUCKET_TYPE"], got["RIAK_BUCKET"], testKey, value); err == nil {
+		t.Errorf("Should have raised permission error, it didn't")
+	}
+
+	checkError := fmt.Sprintf("Permission denied: User '%s' does not have 'riak_kv.put' on %s/%s", got["RIAK_USER"], got["RIAK_BUCKET_TYPE"], got["RIAK_BUCKET"])
+
+	if !strings.Contains(err.Error(), checkError) {
+		t.Errorf("Expected error: %s\n; got: %s", checkError, err.Error())
+	}
 }
