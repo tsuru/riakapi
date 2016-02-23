@@ -37,7 +37,7 @@ var (
 	}
 )
 
-// Setup & teardown
+// ---------------------------- Setup & teardown ------------------------------
 func createIntegrationConfig() *config.ServiceConfig {
 	// Set env vars to load configuration
 	for k, v := range envVars {
@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// Helper functions
+// ---------------------------- Helper functions ------------------------------
 func newRiakCluster(opts map[string]string, t *testing.T) *riak.Cluster {
 	// Create riak connection with the new user
 	u := opts["RIAK_USER"]
@@ -112,12 +112,16 @@ func getCounter(c *riak.Cluster, bucketType, bucket, key string) (int64, error) 
 	return fcc.Response.CounterValue, nil
 }
 
+// ---------------------------- Integration tests ------------------------------
+
 // TestIntegrationInstanceCreationOk Creates a new bucket on a bucket type. we
 // check if the bucket & the bucket type are present
 func TestIntegrationInstanceCreationOk(t *testing.T) {
 	serviceTestClient := client.NewRiak(serviceITestCfg)
-
-	uri := "/resources?name=test-bucket&plan=tsuru-counter&team=myteam&user=username"
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	plan := "tsuru-counter"
+	instance := fmt.Sprintf("test-instance-%d", rnd.Int())
+	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
 	wantBody := ""
 	wantCode := http.StatusOK
 
@@ -156,10 +160,10 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 	serviceTestClient := client.NewRiak(serviceITestCfg)
 	srvr := server.NewSimpleServer(nil)
 	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
-	instance := "test-instance"
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	instance := fmt.Sprintf("test-instance-%d", rnd.Int())
 	plan := "tsuru-counter"
 	appHost := "myapp.test.org"
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	testKey := fmt.Sprintf("MyTestAwesomeKey_%d", rnd.Int()) // Random key always to avoid collisions between runs
 	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
 
@@ -236,10 +240,10 @@ func TestIntegrationInstanceUnbindingOk(t *testing.T) {
 	serviceTestClient := client.NewRiak(serviceITestCfg)
 	srvr := server.NewSimpleServer(nil)
 	srvr.Register(&RiakService{Cfg: serviceITestCfg, Client: serviceTestClient})
-	instance := "test-instance"
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	instance := fmt.Sprintf("test-instance-%d", rnd.Int())
 	plan := "tsuru-counter"
 	appHost := "myapp.test.org"
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	testKey := fmt.Sprintf("MyTestAwesomeKey_%d", rnd.Int()) // Random key always to avoid collisions between runs
 	uri := fmt.Sprintf("/resources?name=%s&plan=%s&team=myteam&user=username", instance, plan)
 
