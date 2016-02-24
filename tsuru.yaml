@@ -1,0 +1,14 @@
+hooks:
+  build:
+     # We need our app on the GOPATH
+    - rm -rf ${GOPATH}/src/github.com/tsuru/riakapi
+    - mkdir -p ${TSURU_APPDIR} ${GOPATH}/src/github.com/tsuru
+    - ln -s ${TSURU_APPDIR} ${GOPATH}/src/github.com/tsuru/riakapi
+
+    # Install dependencies
+    - go get github.com/Masterminds/glide
+    - GO15VENDOREXPERIMENT=1 ${GOPATH}/bin/glide install
+
+    # Build our app
+    - GO15VENDOREXPERIMENT=1 go build -o ${GOPATH}/bin/riakapi -v ${TSURU_APPDIR}/cmd/main.go
+    - cat ${GOPATH}/src/github.com/tsuru/riakapi/tsuru.yaml
