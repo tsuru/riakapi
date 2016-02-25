@@ -1,9 +1,9 @@
 package service
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -88,9 +88,15 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 		return http.StatusInternalServerError, UserGrantingFailMsg, nil
 	}
 
+	rHosts, err := json.Marshal(s.Cfg.RiakClusterHosts)
+	if err != nil {
+		logrus.Errorf("Could not Bind the instance: %s", err)
+		return http.StatusInternalServerError, UserGrantingFailMsg, nil
+	}
+
 	// The required env vars
 	envVars := map[string]string{
-		"RIAK_HOSTS":       strings.Join(s.Cfg.RiakClusterHosts, ";"),
+		"RIAK_HOSTS":       string(rHosts),
 		"RIAK_HTTP_PORT":   strconv.Itoa(s.Cfg.RiakHTTPPort),
 		"RIAK_PB_PORT":     strconv.Itoa(s.Cfg.RiakPBPort),
 		"RIAK_USER":        user,
@@ -100,8 +106,8 @@ func (s *RiakService) BindInstance(r *http.Request) (int, interface{}, error) {
 	}
 
 	// If there is a certificate then set
-	if s.Cfg.RiakCaCert != "" {
-		envVars["RIAK_CA_CERT"] = s.Cfg.RiakCaCert
+	if s.Cfg.RiakRootCaCert != "" {
+		envVars["RIAK_ROOT_CA_CERT"] = s.Cfg.RiakRootCaCert
 	}
 
 	logrus.Infof("Instace '%s' binded to '%s'", bucketName, userWord)

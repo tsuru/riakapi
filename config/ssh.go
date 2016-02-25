@@ -52,7 +52,7 @@ func (s *SSH) LoadSSHConfigFromEnv(riakCfg *Riak) {
 	if s.SSHHost == "" {
 		// if no host then use the first riak host, if not then localhost
 		if len(riakCfg.RiakClusterHosts) > 0 {
-			s.SSHHost = riakCfg.RiakClusterHosts[0]
+			s.SSHHost = riakCfg.RiakClusterHosts[0].Host
 		} else {
 			s.SSHHost = "127.0.0.1"
 		}

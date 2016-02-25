@@ -46,17 +46,17 @@ type Riak struct {
 func newRiakAuth(username, password, caCert, serverName string, insecureTLS bool) *riak.AuthOptions {
 
 	tlsConfig := &tls.Config{
-		ServerName:         serverName,
 		InsecureSkipVerify: insecureTLS,
 	}
 
-	// Set CA certificate if neccessary
+	// Set root CA certificate and serverName if neccessary
 	if !insecureTLS {
 		caCertPool := x509.NewCertPool()
 		if ok := caCertPool.AppendCertsFromPEM([]byte(caCert)); !ok {
 			logrus.Fatalf("Could not append PEM cert data")
 		}
-		tlsConfig.ClientCAs = caCertPool
+		tlsConfig.RootCAs = caCertPool
+		tlsConfig.ServerName = serverName
 	}
 
 	logrus.Debug("Riak auth options created")
@@ -68,24 +68,24 @@ func newRiakAuth(username, password, caCert, serverName string, insecureTLS bool
 	}
 }
 
-// NewRiak creates a riak client and the ssh connection
-func NewRiak(cfg *config.ServiceConfig) *Riak {
-
+func NewRiakCluster(cfg *config.ServiceConfig) (*riak.Cluster, error) {
 	var err error
-	auth := newRiakAuth(cfg.RiakUser, cfg.RiakPass, cfg.RiakCaCert, cfg.RiakServerName, cfg.RiakInsecureTLS != 0)
 	nodes := []*riak.Node{}
 
 	// create the cluster nodes
 	for _, n := range cfg.RiakClusterHosts {
+		auth := newRiakAuth(cfg.RiakUser, cfg.RiakPass, cfg.RiakRootCaCert, n.ServerName, cfg.RiakInsecureTLS != 0)
+
 		// Create our node
 		nodeOptions := &riak.NodeOptions{
-			RemoteAddress: fmt.Sprintf("%s:%d", n, cfg.RiakPBPort),
+			RemoteAddress: fmt.Sprintf("%s:%d", n.Host, cfg.RiakPBPort),
 			AuthOptions:   auth,
 		}
 
 		var node *riak.Node
 		if node, err = riak.NewNode(nodeOptions); err != nil {
-			logrus.Fatalf("Error connecting to riak: %v", err)
+			logrus.Errorf("Error connecting to riak: %v", err)
+			return nil, err
 		}
 
 		nodes = append(nodes, node)
@@ -98,10 +98,22 @@ func NewRiak(cfg *config.ServiceConfig) *Riak {
 	// Create riak client
 	var cluster *riak.Cluster
 	if cluster, err = riak.NewCluster(opts); err != nil {
-		logrus.Fatalf("Error connecting to riak: %v", err)
+		logrus.Errorf("Error connecting to riak: %v", err)
+		return nil, err
 	}
 
 	if err := cluster.Start(); err != nil {
+		logrus.Errorf("Error connecting to riak: %v", err)
+		return nil, err
+	}
+	return cluster, nil
+}
+
+// NewRiak creates a riak client and the ssh connection
+func NewRiak(cfg *config.ServiceConfig) *Riak {
+	cluster, err := NewRiakCluster(cfg)
+
+	if err != nil {
 		logrus.Fatalf("Error connecting to riak: %v", err)
 	}
 

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -24,7 +23,7 @@ var (
 	serviceITestCfg *config.ServiceConfig
 
 	envVars = map[string]string{
-		"RIAK_HOSTS":        os.Getenv("RIAK_PORT_8087_TCP_ADDR"),
+		"RIAK_HOSTS":        fmt.Sprintf(`[{"host":"%[1]s","server_name":"%[1]s"}]`, os.Getenv("RIAK_PORT_8087_TCP_ADDR")),
 		"RIAK_HTTP_PORT":    os.Getenv("RIAK_PORT_8098_TCP_PORT"),
 		"RIAK_PB_PORT":      os.Getenv("RIAK_PORT_8087_TCP_PORT"),
 		"RIAK_USER":         "riakapi",
@@ -56,34 +55,6 @@ func TestMain(m *testing.M) {
 }
 
 // ---------------------------- Helper functions ------------------------------
-func newRiakCluster(opts map[string]string, t *testing.T) *riak.Cluster {
-	// Create riak connection with the new user
-	u := opts["RIAK_USER"]
-	p := opts["RIAK_PASSWORD"]
-	tc := &tls.Config{InsecureSkipVerify: true}
-	a := &riak.AuthOptions{User: u, Password: p, TlsConfig: tc}
-	h := strings.Split(opts["RIAK_HOSTS"], ":")[0]
-	no := &riak.NodeOptions{
-		RemoteAddress: fmt.Sprintf("%s:%s", h, opts["RIAK_PB_PORT"]),
-		AuthOptions:   a,
-	}
-	var n *riak.Node
-	var err error
-	if n, err = riak.NewNode(no); err != nil {
-		t.Errorf("Error creating node: %v", err)
-	}
-	co := &riak.ClusterOptions{Nodes: []*riak.Node{n}}
-	var cluster *riak.Cluster
-	if cluster, err = riak.NewCluster(co); err != nil {
-		t.Errorf("Error connecting to riak: %v", err)
-	}
-	if err := cluster.Start(); err != nil {
-		t.Errorf("Error connecting to riak: %v", err)
-	}
-
-	return cluster
-}
-
 func incCounter(c *riak.Cluster, bucketType, bucket, key string, value int) error {
 	cmd, _ := riak.NewUpdateCounterCommandBuilder().
 		WithBucketType(bucketType).
@@ -216,7 +187,18 @@ func TestIntegrationInstanceBindingOk(t *testing.T) {
 
 	// Check getting and retrieving a key on the recent created bucket with the
 	// username and password
-	cluster := newRiakCluster(got, t)
+
+	cfg := createIntegrationConfig()
+	cfg.RiakUser = got["RIAK_USER"]
+	cfg.RiakPass = got["RIAK_PASSWORD"]
+	cluster, err := client.NewRiakCluster(cfg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err != nil {
+		t.Errorf("Error connecting to riak with new credentials: %v", err)
+	}
 
 	// Set a key on the bucket
 	value := rnd.Intn(100)
@@ -274,7 +256,14 @@ func TestIntegrationInstanceUnbindingOk(t *testing.T) {
 	if err != nil {
 		t.Error("unable to JSON decode response body: ", err)
 	}
-	cluster := newRiakCluster(got, t)
+
+	cfg := createIntegrationConfig()
+	cfg.RiakUser = got["RIAK_USER"]
+	cfg.RiakPass = got["RIAK_PASSWORD"]
+	cluster, err := client.NewRiakCluster(cfg)
+	if err != nil {
+		t.Error(err)
+	}
 
 	// Set a key on the bucket (this should be allowed)
 	value := rnd.Intn(100)
