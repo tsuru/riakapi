@@ -211,7 +211,7 @@ func TestInstanceBindingOK(t *testing.T) {
 
 			wantCode: http.StatusCreated,
 			wantBody: map[string]string{
-				"RIAK_HOSTS":       "",
+				"RIAK_HOSTS":       "null",
 				"RIAK_HTTP_PORT":   "0",
 				"RIAK_PB_PORT":     "0",
 				"RIAK_USER":        "tsuru_myapp.tsuru.io",
@@ -243,7 +243,7 @@ func TestInstanceBindingOK(t *testing.T) {
 
 			wantCode: http.StatusCreated,
 			wantBody: map[string]string{
-				"RIAK_HOSTS":       "",
+				"RIAK_HOSTS":       "null",
 				"RIAK_HTTP_PORT":   "0",
 				"RIAK_PB_PORT":     "0",
 				"RIAK_USER":        "tsuru_myapp.tsuru.io",
